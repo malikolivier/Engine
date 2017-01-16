@@ -5,6 +5,7 @@ public class SDLWindowTarget : Object, IWindowTarget
     private bool is_fullscreen;
     private unowned Window window;
 
+    private CursorType _cursor_type;
     private Cursor normal_cursor;
     private Cursor hover_cursor;
     private Cursor caret_cursor;
@@ -18,10 +19,17 @@ public class SDLWindowTarget : Object, IWindowTarget
         hover_cursor = new Cursor.from_system(SystemCursor.HAND);
         caret_cursor = new Cursor.from_system(SystemCursor.IBEAM);
         current_cursor = CursorType.NORMAL;
+        _cursor_type = current_cursor;
     }
 
     public void pump_events()
     {
+        if (_cursor_type != current_cursor)
+        {
+            _cursor_type = current_cursor;
+            int_set_cursor_type(_cursor_type);
+        }
+
         Event.pump();
     }
 
@@ -68,9 +76,11 @@ public class SDLWindowTarget : Object, IWindowTarget
 
     public void set_cursor_type(CursorType type)
     {
-        if (type == current_cursor)
-            return;
+        current_cursor = type;
+    }
 
+    private void int_set_cursor_type(CursorType type)
+    {
         switch (type)
         {
         case CursorType.NORMAL:
