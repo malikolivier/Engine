@@ -489,16 +489,25 @@ public abstract class Serializable : Object
         return deserialize(str.data);
     }
 
-    private static Serializable? get_object(Type type, DeserializationContext context) throws DataLengthError
+    private static Serializable? get_object(DeserializationContext context) throws DataLengthError
     {
+        if (context.get_byte() != NON_NULL_BYTE)
+            return null;
+
+        string? type_name = context.get_string();
+        Type? type = Type.from_name(type_name);
+
+        if (type_name != null && type_name != "" && type_name != type.name())
+        {
+            EngineLog.log(EngineLogType.NETWORK, "Serializable", "Type (" + type_name + ") has not been class initialized");
+            return null;
+        }
+
         if (!type.is_a(typeof(Serializable)))
         {
             EngineLog.log(EngineLogType.NETWORK, "Serializable", "Not serializable type (" + type.name() + ")");
             return null;
         }
-
-        if (context.get_byte() != NON_NULL_BYTE)
-            return null;
 
         if (type.is_a(typeof(SerializableList)))
         {
@@ -518,17 +527,7 @@ public abstract class Serializable : Object
             Serializable[] items = new Serializable[item_count];
 
             for (int i = 0; i < item_count; i++)
-            {
-                string? type_name = context.get_string();
-                if (type_name == null)
-                {
-                    items[i] = null;
-                    continue;
-                }
-
-                Type? list_type = Type.from_name(type_name);
-                items[i] = get_object(list_type, context);
-            }
+                items[i] = get_object(context);
 
             return new SerializableList<Serializable>(items);
         }
@@ -563,7 +562,7 @@ public abstract class Serializable : Object
             else if (p.value_type.is_a(typeof(Serializable)))
             {
                 val = Value(typeof(Serializable));
-                val.set_object(get_object(p.value_type, context));
+                val.set_object(get_object(context));
             }
             else
                 has_value = false;
@@ -629,16 +628,8 @@ public abstract class Serializable : Object
                 strings[i] = data.get_string();
 
             DeserializationContext context = new DeserializationContext(strings, data);
-            string? type_name = context.get_string();
-            Type? type = null;
 
-            if (type_name == null || (type = Type.from_name(type_name)) == null)
-            {
-                EngineLog.log(EngineLogType.NETWORK, "Serializable", "Got null type name");
-                return null;
-            }
-
-            return get_object(type, context);
+            return get_object(context);
         }
         catch (Error e)
         {
@@ -651,7 +642,6 @@ public abstract class Serializable : Object
     {
         SerializationContext context = new SerializationContext();
 
-        context.add_string(get_type().name());
         serialize_sub(this, context);
 
         return FileLoader.compress(context.serialize());
@@ -664,6 +654,8 @@ public abstract class Serializable : Object
         if (obj == null)
             return;
 
+        context.add_string(obj.get_type().name());
+
         if (obj is SerializableList)
         {
             Serializable[] objs = (Serializable[])((SerializableList)obj).to_array();
@@ -671,15 +663,7 @@ public abstract class Serializable : Object
             context.add_int(objs.length);
 
             for (int i = 0; i < objs.length; i++)
-            {
-                if (objs[i] == null)
-                    context.add_string(null);
-                else
-                {
-                    context.add_string(objs[i].get_type().name());
-                    serialize_sub(objs[i], context);
-                }
-            }
+                serialize_sub(objs[i], context);
 
             return;
         }
