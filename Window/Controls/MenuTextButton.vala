@@ -37,7 +37,7 @@ class MenuTextButton : Control
         if (!enabled)
         {
             button.diffuse_color = Color.with_alpha(0.1f);
-            label.color = Color(1, 1, 1, 0.1f);
+            label.color = Color(0, 0, 0, 0.1f);
         }
         else
         {
@@ -46,18 +46,18 @@ class MenuTextButton : Control
                 if (mouse_down)
                 {
                     button.diffuse_color = Color(0.2f, 0.2f, 0.05f, 1);
-                    label.color = Color(1.2f, 1.2f, 1.05f, 1);
+                    label.color = Color(0.2f, 0.2f, 0.05f, 1);
                 }
                 else
                 {
                     button.diffuse_color = Color(0.4f, 0.4f, 0.2f, 1);
-                    label.color = Color(1.4f, 1.4f, 1.2f, 1);
+                    label.color = Color(0.4f, 0.4f, 0.2f, 1);
                 }
             }
             else
             {
                 button.diffuse_color = Color.with_alpha(1);
-                label.color = Color(1, 1, 1, 1);
+                label.color = Color(0, 0, 0, 1);
             }
         }
     }

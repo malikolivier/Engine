@@ -62,8 +62,8 @@ public class Animation
             if (elapsed >= times.total())
             {
                 finished(this);
-                post_finished(this);
                 done = true;
+                post_finished(this);
             }
         }
     }
@@ -79,6 +79,13 @@ public class AnimationTime : Serializable
         this.time = time;
         this.post = post;
     }
+    
+    public AnimationTime.preset(float time)
+    {
+        this.time = time;
+    }
+    
+    public AnimationTime.zero() {}
 
     public float total()
     {

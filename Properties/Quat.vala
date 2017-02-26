@@ -41,6 +41,15 @@ public class Quat
         this.z = z;
     }
 
+    public bool equals(Quat other)
+    {
+        return
+            w == other.w &&
+            x == other.x &&
+            y == other.y &&
+            z == other.z;
+    }
+
     public float len()
     {
         return (float)Math.sqrt(w*w + x*x + y*y + z*z);

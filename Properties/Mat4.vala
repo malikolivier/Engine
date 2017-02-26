@@ -4,6 +4,10 @@ public class Mat4
     private Vec4 v2;
     private Vec4 v3;
     private Vec4 v4;
+    
+    // Caching for Optimization
+    private Mat4? inverse_matrix;
+    private float[]? data;
 
     public Mat4()
     {
@@ -14,6 +18,8 @@ public class Mat4
             Vec4(0, 0, 1, 0),
             Vec4(0, 0, 0, 1)
         );
+
+        identity = true;
     }
 
     public Mat4.with_array(float *a)
@@ -22,6 +28,7 @@ public class Mat4
         v2 = Vec4(a[ 4], a[ 5], a[ 6], a[ 7]);
         v3 = Vec4(a[ 8], a[ 9], a[10], a[11]);
         v4 = Vec4(a[12], a[13], a[14], a[15]);
+        check_is_identity();
     }
 
     public Mat4.with_vecs(Vec4 v1, Vec4 v2, Vec4 v3, Vec4 v4)
@@ -30,10 +37,45 @@ public class Mat4
         this.v2 = v2;
         this.v3 = v3;
         this.v4 = v4;
+        check_is_identity();
+    }
+
+    public Mat4.empty()
+    {
+        identity = false;
+    }
+
+    private void check_is_identity()
+    {
+        identity =
+        (
+            v1.x == 1 &&
+            v1.y == 0 &&
+            v1.z == 0 &&
+            v1.w == 0 &&
+            v2.x == 0 &&
+            v2.y == 1 &&
+            v2.z == 0 &&
+            v2.w == 0 &&
+            v3.x == 0 &&
+            v3.y == 0 &&
+            v3.z == 1 &&
+            v3.w == 0 &&
+            v4.x == 0 &&
+            v4.y == 0 &&
+            v4.z == 0 &&
+            v4.w == 1 &&
+        );
     }
 
     public Mat4? inverse()
     {
+        if (inverse_matrix != null)
+            return inverse_matrix;
+        
+        if (is_identity)
+            return this;
+
         float mat[16], inv[16];
 
         Vec4 *v = (Vec4*)mat;
@@ -42,11 +84,14 @@ public class Mat4
         v[2] = v3;
         v[3] = v4;
 
-        return gluInvertMatrix(mat, inv) ? new Mat4.with_array(inv) : null;
+        return inverse_matrix = (gluInvertMatrix(mat, inv) ? new Mat4.with_array(inv) : new Mat4.empty());
     }
 
     public Mat4 transpose()
     {
+        if (identity)
+            return this;
+        
         Vec4 v1 = this.col(0);
         Vec4 v2 = this.col(1);
         Vec4 v3 = this.col(2);
@@ -55,19 +100,14 @@ public class Mat4
         return new Mat4.with_vecs(v1, v2, v3, v4);
     }
 
-    public Mat4 copy()
-    {
-        Vec4 v1 = this.v1;
-        Vec4 v2 = this.v2;
-        Vec4 v3 = this.v3;
-        Vec4 v4 = this.v4;
-
-        return new Mat4.with_vecs(v1, v2, v3, v4);
-    }
-
     // this*mat
     public Mat4 mul_mat(Mat4 mat)
     {
+        if (identity)
+            return mat;
+        if (mat.identity)
+            return this;
+        
         Vec4 vec1 =
         {
             v1.dot(mat.col(0)),
@@ -125,16 +165,60 @@ public class Mat4
         };
     }
 
+    public Vec4 row(int i)
+    {
+             if (i == 0) return v1;
+        else if (i == 1) return v2;
+        else if (i == 2) return v3;
+        else             return v4;
+    }
+
+    public Vec3 get_position_vec3()
+    {
+        return Vec3(v4.x, v4.y, v4.z);
+    }
+
+    public Vec4 get_position_vec4()
+    {
+        return v4;
+    }
+
+    public Vec3 get_scale_vec3()
+    {
+        return Vec3(v1.x, v2.y, v3.z);
+    }
+
+    public Vec4 get_scale_vec4()
+    {
+        return Vec3(v1.x, v2.y, v3.z, v4.w);
+    }
+
+    public Quat get_rotation_quat()
+    {
+        float w = Math.sqrtf(Math.fmaxf(0, 1 + v1.x + v2.y + v3.z)) / 2;
+        float x = Math.sqrtf(Math.fmaxf(0, 1 + v1.x - v2.y - v3.z)) / 2;
+        float y = Math.sqrtf(Math.fmaxf(0, 1 - v1.x + v2.y - v3.z)) / 2;
+        float z = Math.sqrtf(Math.fmaxf(0, 1 - v1.x - v2.y + v3.z)) / 2;
+        x *= Calculations.sign(x * (v3.y - v2.z));
+        y *= Calculations.sign(y * (v1.z - v3.x));
+        z *= Calculations.sign(z * (v2.x - v1.y));
+
+        return Quat.vals(w, x, y, z);
+    }
+
     public float[] get_data()
     {
-        float[] mat = new float[16];
-        Vec4 *v = (Vec4*)mat;
+        if (data != null)
+            return data;
+
+        data = new float[16];
+        Vec4 *v = (Vec4*)data;
         v[0] = v1;
         v[1] = v2;
         v[2] = v3;
         v[3] = v4;
 
-        return mat;
+        return data;
     }
 
     public float get(int i)
@@ -278,4 +362,6 @@ public class Mat4
 
         return true;
     }
+
+    public bool identity { get; private set; }
 }

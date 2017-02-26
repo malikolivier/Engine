@@ -2,8 +2,6 @@ using Gee;
 
 public abstract class RenderTarget : Object
 {
-    private bool multithread_rendering;
-
     private RenderState? current_state = null;
     private RenderState? buffer_state = null;
     private bool running = false;
@@ -309,20 +307,27 @@ public abstract class RenderTarget : Object
         }
     }
 
-    public Mat4 get_projection_matrix(float view_angle, float aspect_ratio)
+    public Transform get_projection_matrix(float view_angle, float aspect_ratio)
     {
-        view_angle  *= 0.6f;
-        float z_near = 0.5f * aspect_ratio;
-        float z_far  =   30 * aspect_ratio;
+        view_angle   *= 0.6f;
+        float z_near  = 0.5f * aspect_ratio;
+        float z_far   =   30 * aspect_ratio;
+        float z_plus  = z_far + z_near;
+        float z_minus = z_far - z_near;
+        float z_mul   = z_far * z_near;
 
         float vtan1 = 1 / (float)Math.tan(view_angle);
         float vtan2 = vtan1 * aspect_ratio;
-        Vec4 v1 = {vtan1,    0,                   0,                                    0};
-        Vec4 v2 = {0,        vtan2,               0,                                    0};
-        Vec4 v3 = {0,        0,                   -(z_far + z_near) / (z_far - z_near), -2 * z_far * z_near / (z_far - z_near)};
-        Vec4 v4 = {0,        0,                   -1,                                   0};
 
-        return new Mat4.with_vecs(v1, v2, v3, v4);
+        Vec4 v1 = {vtan1,    0,               0,                   0                  };
+        Vec4 v2 = {0,        vtan2,           0,                   0                  };
+        Vec4 v3 = {0,        0,              -z_plus / z_minus,   -2 * z_mul / z_minus};
+        Vec4 v4 = {0,        0,              -1,                   0                  };
+
+        Transform transform = new Transform();
+        transform.matrix = new Mat4.with_vecs(v1, v2, v3, v4);
+        return transform;
+
     }
 
     public abstract void render(RenderState state);
@@ -348,6 +353,7 @@ public abstract class RenderTarget : Object
     public ResourceStore resource_store { get { return store; } }
     public bool v_sync { get; set; }
     public bool anisotropic_filtering { get; set; }
+    public bool multithread_rendering { get; private set; }
 
     public string shader_3D
     {

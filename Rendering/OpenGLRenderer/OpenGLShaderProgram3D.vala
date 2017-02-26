@@ -109,24 +109,29 @@ public class OpenGLShaderProgram3D
         glUseProgram(program);
     }
 
-    public void apply_scene(Mat4 projection_transform, Mat4 view_transform, ArrayList<LightSource> lights)
+    public void apply_scene(Transform projection_transform, Transform view_transform, ArrayList<LightSource> lights)
     {
         use_program();
 
-        glUniformMatrix4fv(projection_transform_attrib, 1, false, projection_transform.get_data());
-        glUniformMatrix4fv(view_transform_attrib, 1, false, view_transform.get_data());
-        glUniformMatrix4fv(un_projection_transform_attrib, 1, false, projection_transform.inverse().get_data());
-        glUniformMatrix4fv(un_view_transform_attrib, 1, false, view_transform.inverse().get_data());
+        Mat4 proj_mat = projection_transform.matrix;
+        Mat4 view_mat = view_transform.matrix;
+
+        glUniformMatrix4fv(projection_transform_attrib, 1, false, proj_mat.get_data());
+        glUniformMatrix4fv(view_transform_attrib, 1, false, view_mat.get_data());
+        glUniformMatrix4fv(un_projection_transform_attrib, 1, false, proj_mat.inverse().get_data());
+        glUniformMatrix4fv(un_view_transform_attrib, 1, false, view_mat.inverse().get_data());
         glUniform1i(light_count_attrib, lights.size);
 
         for (int i = 0; i < lights.size; i++)
             this.lights[i].apply(lights[i].position, lights[i].color, lights[i].intensity);
     }
 
-    public void render_object(int triangle_count, Mat4 model_transform, RenderMaterial material, bool use_texture)
+    public void render_object(int triangle_count, Transform model_transform, RenderMaterial material, bool use_texture)
     {
-        glUniformMatrix4fv(model_transform_attrib, 1, false, model_transform.get_data());
-        glUniformMatrix4fv(un_model_transform_attrib, 1, false, model_transform.inverse().get_data());
+        Mat4 mat = model_transform.matrix;
+
+        glUniformMatrix4fv(model_transform_attrib, 1, false, mat.get_data());
+        glUniformMatrix4fv(un_model_transform_attrib, 1, false, mat.inverse().get_data());
 
         glUniform1i(use_texture_attrib, (int)use_texture);
         glUniform4f(ambient_color_attrib, material.ambient_color.r, material.ambient_color.g, material.ambient_color.b, material.ambient_color.a);
@@ -161,8 +166,9 @@ private class OpenGLLightSource
         intensity_attrib = glGetUniformLocation(program, "light_source[" + index.to_string() + "].intensity");
     }
 
-    public void apply(Vec3 position, Color color, float intensity)
+    public void apply(Transform transform, Color color, float intensity)
     {
+        Vec3 position = transform.position;
         glUniform3f(position_attrib, position.x, position.y, position.z);
         glUniform3f(color_attrib, color.r, color.g, color.b);
         glUniform1f(intensity_attrib, intensity);

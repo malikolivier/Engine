@@ -338,21 +338,14 @@ public class Calculations
         return new Mat4.with_array(vals);
     }
 
-    /*public static Mat4 get_model_matrix(Vec3 position, Vec3 rotation, Vec3 scale)
+    public static Mat4 get_model_matrix(Vec3 translation, Vec3 scale, Quat rotation)
     {
-        float pi = (float)Math.PI;
-        Mat4 x = rotation_matrix(Vec3(1, 0, 0), pi * rotation.x);
-        Mat4 y = rotation_matrix(Vec3(0, 1, 0), pi * rotation.y);
+        Mat4 t = translation_matrix(translation);
+        Mat4 s = scale_matrix(scale);
+        Mat4 r = rotation_matrix_quat(rotation);
 
-        Vec3 rot = {0, 1, 0};
-        rot = rotate_x(Vec3.empty(), -rotation.x, rot);
-        rot = rotate_y(Vec3.empty(), -rotation.y, rot);
-
-        Mat4 z = rotation_matrix(rot, pi * rotation.z);
-        Mat4 rotate = x.mul_mat(y).mul_mat(z);
-
-        return scale_matrix(scale).mul_mat(rotate).mul_mat(translation_matrix(position));
-    }*/
+        return s.mul_mat(r).mul_mat(t);
+    }
 
     public static Mat3 rotation_matrix_3(float angle)
     {
@@ -448,5 +441,12 @@ public class Calculations
             z += 2;
 
         return Vec3(x, y, z);
+    }
+
+    public static int sign(double n)
+    {
+        if (n > 0) return 1;
+        if (n < 0) return -1;
+        return 0;
     }
 }

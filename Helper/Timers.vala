@@ -34,7 +34,6 @@ public class StepTimer
 public class DelayTimer
 {
     private bool time_set;
-    private bool is_active = false;
     private float time;
     private float _delay;
 
@@ -58,8 +57,15 @@ public class DelayTimer
         return false;
     }
 
-    public void set_time(float delay)
+    public void set_time(float delay, bool add = false)
     {
+        if (add && is_active)
+        {
+            _delay += delay;
+            time += delay;
+            return;
+        }
+
         _delay = delay;
         time_set = false;
         is_active = true;
@@ -73,4 +79,6 @@ public class DelayTimer
             set_time(delay);
         }
     }
+
+    public bool is_active { get; private set; }
 }

@@ -110,44 +110,44 @@ public class OpenGLRenderer : RenderTarget
     {
         OpenGLShaderProgram3D program = program_3D;
 
-        Mat4 projection_transform = get_projection_matrix(scene.focal_length, (float)scene.screen_size.width / scene.screen_size.height);
-        Mat4 view_transform = scene.view_transform;
-        Mat4 scene_transform = scene.scene_transform;
+        Transform projection_transform = get_projection_matrix(scene.focal_length, (float)scene.screen_size.width / scene.screen_size.height);
+        Transform view_transform = scene.view_transform;
+        Transform scene_transform = scene.scene_transform;
 
         program.apply_scene(projection_transform.mul_mat(scene_transform), view_transform, scene.lights);
 
         int last_texture_handle = -1;
         int last_array_handle = -1;
 
-        Mat4 mat = new Mat4();
+        Transform transform = new Tranform();
 
         foreach (Transformable3D obj in scene.objects)
         {
             if (obj is RenderGeometry3D)
-                render_geometry_3D(obj as RenderGeometry3D, mat, program, ref last_texture_handle, ref last_array_handle);
+                render_geometry_3D(obj as RenderGeometry3D, transform, program, ref last_texture_handle, ref last_array_handle);
             else if (obj is RenderBody3D)
-                render_body_3D(obj as RenderBody3D, mat, program, ref last_texture_handle, ref last_array_handle);
+                render_body_3D(obj as RenderBody3D, transform, program, ref last_texture_handle, ref last_array_handle);
             else if (obj is RenderLabel3D)
-                render_label_3D(obj as RenderLabel3D, mat, program, ref last_texture_handle, ref last_array_handle);
+                render_label_3D(obj as RenderLabel3D, transform, program, ref last_texture_handle, ref last_array_handle);
         }
     }
 
-    private void render_geometry_3D(RenderGeometry3D geometry, Mat4 transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_geometry_3D(RenderGeometry3D geometry, Transform transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
-        Mat4 mat = transform.mul_mat(geometry.transform);
+        Transform trans = transform.mul(geometry.transform);
 
         foreach (Transformable3D obj in geometry.geometry)
         {
             if (obj is RenderGeometry3D)
-                render_geometry_3D(obj as RenderGeometry3D, mat, program, ref last_texture_handle, ref last_array_handle);
+                render_geometry_3D(obj as RenderGeometry3D, trans, program, ref last_texture_handle, ref last_array_handle);
             else if (obj is RenderBody3D)
-                render_body_3D(obj as RenderBody3D, mat, program, ref last_texture_handle, ref last_array_handle);
+                render_body_3D(obj as RenderBody3D, trans, program, ref last_texture_handle, ref last_array_handle);
             else if (obj is RenderLabel3D)
-                render_label_3D(obj as RenderLabel3D, mat, program, ref last_texture_handle, ref last_array_handle);
+                render_label_3D(obj as RenderLabel3D, trans, program, ref last_texture_handle, ref last_array_handle);
         }
     }
 
-    private void render_body_3D(RenderBody3D obj, Mat4 transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_body_3D(RenderBody3D obj, Transform transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
         if (obj.material.alpha <= 0)
             return;
@@ -180,11 +180,11 @@ public class OpenGLRenderer : RenderTarget
             OpenGLFunctions.glBindVertexArray(model_handle.array_handle);
         }
 
-        Mat4 model_transform = transform.mul_mat(obj.transform);
+        Transform model_transform = transform.mul(obj.transform);
         program.render_object(model_handle.triangle_count, model_transform, obj.material, use_texture);
     }
 
-    private void render_label_3D(RenderLabel3D label, Mat4 transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_label_3D(RenderLabel3D label, Transform transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
         OpenGLLabelResourceHandle label_handle = label.reference.handle as OpenGLLabelResourceHandle;
         OpenGLModelResourceHandle model_handle = label.model.handle as OpenGLModelResourceHandle;
@@ -201,7 +201,7 @@ public class OpenGLRenderer : RenderTarget
             OpenGLFunctions.glBindVertexArray(model_handle.array_handle);
         }
 
-        Mat4 model_transform = transform.mul_mat(label.transform);
+        Transform model_transform = transform.mul(label.get_final_transform());
         program.render_object(model_handle.triangle_count, model_transform, label.material, true);
     }
 

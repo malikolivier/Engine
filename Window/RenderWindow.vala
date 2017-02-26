@@ -38,7 +38,7 @@ public abstract class RenderWindow
 
     private RenderState render()
     {
-        RenderState state = new RenderState(size);
+        RenderState state = new RenderState(size, renderer.multithread_rendering);
         state.back_color = back_color;
         main_view.start_render(state);
         return state;

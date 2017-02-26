@@ -152,15 +152,26 @@ public class RenderLabel3D : RenderObject3D
         set;// { material.diffuse_color = Color(value.r - 1, value.g - 1, value.b - 1, value.a); }
     }
 
-    protected override Vec3 get_internal_scale()
+    public override Transform get_final_transform()
     {
-        return end_scale;
+        Transform t = transform.copy();
+
+        Vec3 s = font_sizing();
+        t.scale = Vec3(t.scale.x * s.x, t.scale.y * s.y, t.scale.z * s.z);
+
+        return t;
+    }
+
+    private Vec3 font_sizing()
+    {
+        return Vec3(info.size.width / font_size * FONT_SIZE_MULTIPLIER * _size, 1, info.size.height / font_size * FONT_SIZE_MULTIPLIER * _size);
     }
 
     public Vec3 end_scale
     {
         get
         {
+            Vec3 sizing = font_sizing();
             return Vec3(_scale.x * info.size.width / font_size * FONT_SIZE_MULTIPLIER * _size, 1, _scale.z * info.size.height / font_size * FONT_SIZE_MULTIPLIER * _size);
         }
     }
@@ -171,16 +182,6 @@ public class RenderLabel3D : RenderObject3D
         {
             Vec3 scale = end_scale;
             return Vec3(model.size.x * scale.x, 0, model.size.z * scale.z);
-        }
-    }
-
-    public float size
-    {
-        get { return _size; }
-        set
-        {
-            dirty = true;
-            _size = value;
         }
     }
 

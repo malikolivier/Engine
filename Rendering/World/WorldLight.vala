@@ -1,0 +1,71 @@
+public class WorldLight : WorldObject
+{
+	private LightSource light = new LightSource();
+
+	public WorldLight()
+	{
+
+	}
+
+	protected override void add_object(RenderScene3D scene)
+	{
+		scene.add_light(light);
+	}
+
+	protected override void apply_transform(Mat4 transform)
+	{
+		light.transform = transform;
+	}
+
+	public override void start_custom_animation(WorldAnimation animation)
+	{
+		if (!(animation is WorldLightAnimation))
+			return;
+		
+		WorldLightAnimation ani = animation as WorldLightAnimation;
+
+		if (ani.relative_intensity)
+			ani.start_intensity = intensity;
+	}
+
+	public override void process_custom_animation(WorldAnimation animation)
+	{
+		if (!(animation is WorldLightAnimation))
+			return;
+		
+		WorldLightAnimation ani = animation as WorldLightAnimation;
+
+		if (ani.use_intensity)
+			intensity = ani.intensity_curve.map(time);
+	}
+
+	public float intensity { get { return light.intensity; } set { light.instensity = value; } }
+}
+
+public class WorldLightAnimation : WorldObjectAnimation
+{
+	public WorldLightAnimation(AnimationTime time)
+	{
+		base(time);
+	}
+
+	public void relative_intensity(Curve curve)
+	{
+		intensity_curve = curve;
+		use_intensity = true;
+		relative_intensity = true;
+	}
+
+	public void absolute_intensity(Curve curve, float start_intensity)
+	{
+		intensity_curve = curve;
+		use_intensity = true;
+		relative_intensity = false;
+		this.start_intensity = start_intensity;
+	}
+
+	public bool use_instensity { get; private set; }
+	public bool relative_intensity { get; private set; }
+	public float start_intensity { get; set; }
+	public Curve intensity_curve { get; private set; }
+}
