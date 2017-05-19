@@ -48,3 +48,19 @@ public class ExponentCurve : Curve
         return (float)Math.pow(x, exp);
     }
 }
+
+public class SmoothApproachCurve : Curve
+{
+    private float exp;
+
+    public SmoothApproachCurve()
+    {
+        this.exp = 0.01f;
+    }
+
+    public override float map(float x)
+    {
+        float mul = (float)Math.pow(x, 0.5f);
+        return (1 - mul) * x + (float)Math.pow(x, exp) * mul;
+    }
+}

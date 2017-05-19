@@ -8,7 +8,31 @@ public class ObjParser
         string[]? file = FileLoader.load(path + filename + ".obj");
         if (file == null)
             return null;
+        
+        ObjInfo info = parse_data(file);
 
+        ArrayList<MaterialData> mats = new ArrayList<MaterialData>();
+
+        foreach (string mat in info.materials)
+            mats.add_all(load_material(path + mat));
+
+        return new GeometryData(info.models, mats);
+    }
+
+    public static ArrayList<ModelData> parse_string(string str)
+    {
+        ObjInfo info = parse_data(FileLoader.split_string(str));
+        return info.models;
+    }
+
+    public static ArrayList<ModelData> parse_strings(string[] str)
+    {
+        ObjInfo info = parse_data(str);
+        return info.models;
+    }
+
+    private static ObjInfo parse_data(string[] data)
+    {
         ArrayList<ModelData> models = new ArrayList<ModelData>();
 
         string? name = null;
@@ -19,9 +43,12 @@ public class ObjParser
         ArrayList<string> vn = new ArrayList<string>();
         ArrayList<string> f = new ArrayList<string>();
 
-        foreach (string line in file)
+        foreach (string line in data)
         {
             string[] lines = line.split(" ", 2);
+            if (lines.length < 2)
+                continue;
+
             if (lines[0] == "o")
             {
                 if (name != null)
@@ -57,12 +84,7 @@ public class ObjParser
                 models.add(model);
         }
 
-        ArrayList<MaterialData> mats = new ArrayList<MaterialData>();
-
-        foreach (string mat in mtl)
-            mats.add_all(load_material(path + mat));
-
-        return new GeometryData(models, mats);
+        return new ObjInfo(models, mtl);
     }
 
     private static ModelData? process_model_data
@@ -420,6 +442,18 @@ public class ObjParser
         public int normal;
         public bool has_uv;
         public bool has_normal;
+    }
+
+    private class ObjInfo
+    {
+        public ObjInfo(ArrayList<ModelData> models, ArrayList<string> materials)
+        {
+            this.models = models;
+            this.materials = materials;
+        }
+
+        public ArrayList<ModelData> models { get; private set; }
+        public ArrayList<string> materials { get; private set; }
     }
 }
 

@@ -1,3 +1,5 @@
+using Engine;
+
 public abstract class RenderObject2D : Object
 {
     public RenderObject2D copy()

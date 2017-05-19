@@ -14,19 +14,15 @@ public class OpenGLRenderer : RenderTarget
     private OpenGLShaderProgram3D program_3D;
     private OpenGLShaderProgram2D program_2D;
 
-	//private OpenGLShaderProgram2D post_processing_shader_program;
-
-	//private OpenGLRenderBuffer render_buffer;
-	//private OpenGLFrameBuffer primary_buffer;
-	//private OpenGLFrameBuffer secondary_buffer;
-
-    //private const int samplers[2] = {0, 1};
-
     private Size2i view_size;
 
-    public OpenGLRenderer(IWindowTarget window, bool multithread_rendering)
+    private int debug_2D_draws;
+    private int debug_3D_draws;
+    private int debug_scene_switches;
+
+    public OpenGLRenderer(IWindowTarget window, bool multithread_rendering, bool debug)
     {
-        base(window, multithread_rendering);
+        base(window, multithread_rendering, debug);
         store = new ResourceStore(this);
     }
 
@@ -54,15 +50,13 @@ public class OpenGLRenderer : RenderTarget
         glEnable(GL_FRAMEBUFFER_SRGB);
         glEnable(GL_MULTISAMPLE);
 
-        shader_3D = "open_gl_shader_3D_low";
-        shader_2D = "open_gl_shader_2D";
         change_v_sync(v_sync);
 
-        program_3D = new OpenGLShaderProgram3D("./Data/Shaders/" + shader_3D, MAX_LIGHTS, POSITION_ATTRIBUTE, TEXTURE_ATTRIBUTE, NORMAL_ATTRIBUTE);
+        program_3D = new OpenGLShaderProgram3D(MAX_LIGHTS, POSITION_ATTRIBUTE, TEXTURE_ATTRIBUTE, NORMAL_ATTRIBUTE);
         if (!program_3D.init())
             return false;
 
-        program_2D = new OpenGLShaderProgram2D("./Data/Shaders/" + shader_2D);
+        program_2D = new OpenGLShaderProgram2D();
         if (!program_2D.init())
             return false;
 
@@ -73,106 +67,85 @@ public class OpenGLRenderer : RenderTarget
         return true;
     }
 
-    /*private void init_frame_buffer(int width, int height)
-    {
-        render_buffer = new OpenGLRenderBuffer(width, height);
-
-        float[] frame_buffer_vertices = {-1, -1, 1, -1, -1, 1, 1, 1};
-        glGenBuffers(1, frame_buffer_object_vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, frame_buffer_object_vertices);
-        glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), frame_buffer_vertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(pp_tex_attrib, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid[])0);
-        //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }*/
-
     public override void render(RenderState state)
     {
+        debug_2D_draws = 0;
+        debug_3D_draws = 0;
+        debug_scene_switches = 0;
+
         setup_projection(state.screen_size);
         glClearColor(state.back_color.r, state.back_color.g, state.back_color.b, state.back_color.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);
 
         foreach (RenderScene scene in state.scenes)
         {
-            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            Type type = scene.get_type();
-            if (type == typeof(RenderScene2D))
-                render_scene_2D((RenderScene2D)scene);
-            else if (type == typeof(RenderScene3D))
-                render_scene_3D((RenderScene3D)scene);
-
-            //post_process_draw(scene);
+            if (scene is RenderScene2D)
+                render_scene_2D(scene as RenderScene2D);
+            else if (scene is RenderScene3D)
+                render_scene_3D(scene as RenderScene3D);
+            
+            debug_scene_switches++;
         }
+
+        if (debug)
+            get_debug_messages();
     }
 
     private void render_scene_3D(RenderScene3D scene)
     {
         OpenGLShaderProgram3D program = program_3D;
 
-        Transform projection_transform = get_projection_matrix(scene.focal_length, (float)scene.screen_size.width / scene.screen_size.height);
-        Transform view_transform = scene.view_transform;
-        Transform scene_transform = scene.scene_transform;
+        Mat4 projection_matrix = get_projection_matrix(scene.focal_length, (float)scene.screen_size.width / scene.screen_size.height);
+        Mat4 view_matrix = scene.view_matrix;
+        Mat4 scene_matrix = scene.scene_matrix;
 
-        program.apply_scene(projection_transform.mul_mat(scene_transform), view_transform, scene.lights);
+        program.apply_scene(projection_matrix.mul_mat(scene_matrix), view_matrix, scene.lights);
 
         int last_texture_handle = -1;
         int last_array_handle = -1;
 
-        Transform transform = new Tranform();
-
         foreach (Transformable3D obj in scene.objects)
-        {
-            if (obj is RenderGeometry3D)
-                render_geometry_3D(obj as RenderGeometry3D, transform, program, ref last_texture_handle, ref last_array_handle);
-            else if (obj is RenderBody3D)
-                render_body_3D(obj as RenderBody3D, transform, program, ref last_texture_handle, ref last_array_handle);
-            else if (obj is RenderLabel3D)
-                render_label_3D(obj as RenderLabel3D, transform, program, ref last_texture_handle, ref last_array_handle);
-        }
+            render_transformable(obj, program, ref last_texture_handle, ref last_array_handle);
     }
 
-    private void render_geometry_3D(RenderGeometry3D geometry, Transform transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_transformable(Transformable3D transformable, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
-        Transform trans = transform.mul(geometry.transform);
-
-        foreach (Transformable3D obj in geometry.geometry)
-        {
-            if (obj is RenderGeometry3D)
-                render_geometry_3D(obj as RenderGeometry3D, trans, program, ref last_texture_handle, ref last_array_handle);
-            else if (obj is RenderBody3D)
-                render_body_3D(obj as RenderBody3D, trans, program, ref last_texture_handle, ref last_array_handle);
-            else if (obj is RenderLabel3D)
-                render_label_3D(obj as RenderLabel3D, trans, program, ref last_texture_handle, ref last_array_handle);
-        }
+        if (transformable is RenderGeometry3D)
+            render_geometry_3D(transformable as RenderGeometry3D, program, ref last_texture_handle, ref last_array_handle);
+        else if (transformable is RenderBody3D)
+            render_body_3D(transformable as RenderBody3D, program, ref last_texture_handle, ref last_array_handle);
+        else if (transformable is RenderLabel3D)
+            render_label_3D(transformable as RenderLabel3D, program, ref last_texture_handle, ref last_array_handle);
     }
 
-    private void render_body_3D(RenderBody3D obj, Transform transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_geometry_3D(RenderGeometry3D geometry, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    {
+        foreach (Transformable3D obj in geometry.geometry)
+            render_transformable(obj, program, ref last_texture_handle, ref last_array_handle);
+    }
+
+    private void render_body_3D(RenderBody3D obj, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
         if (obj.material.alpha <= 0)
             return;
 
         bool use_texture = false;
 
-        OpenGLTextureResourceHandle? texture_handle = null;
         if (obj.texture != null)
         {
-            texture_handle = obj.texture.handle as OpenGLTextureResourceHandle?;
+            OpenGLTextureResourceHandle texture_handle = obj.texture.handle as OpenGLTextureResourceHandle;
             use_texture = true;
+
+            if (last_texture_handle != texture_handle.handle)
+            {
+                last_texture_handle = (int)texture_handle.handle;
+                glBindTexture(GL_TEXTURE_2D, texture_handle.handle);
+            }
         }
 
         OpenGLModelResourceHandle model_handle = obj.model.handle as OpenGLModelResourceHandle;
-
-        if (texture_handle == null)
-        {
-            last_texture_handle = -1;
-            glBindTexture(GL_TEXTURE_2D, -1);
-        }
-        else if (last_texture_handle != texture_handle.handle)
-        {
-            last_texture_handle = (int)texture_handle.handle;
-            glBindTexture(GL_TEXTURE_2D, texture_handle.handle);
-        }
 
         if (last_array_handle != model_handle.array_handle)
         {
@@ -180,11 +153,12 @@ public class OpenGLRenderer : RenderTarget
             OpenGLFunctions.glBindVertexArray(model_handle.array_handle);
         }
 
-        Transform model_transform = transform.mul(obj.transform);
-        program.render_object(model_handle.triangle_count, model_transform, obj.material, use_texture);
+        Mat4 model_matrix = obj.transform.get_full_matrix();
+        program.render_object(model_handle.triangle_count, model_matrix, obj.material, use_texture);
+        debug_3D_draws++;
     }
 
-    private void render_label_3D(RenderLabel3D label, Transform transform, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_label_3D(RenderLabel3D label, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
         OpenGLLabelResourceHandle label_handle = label.reference.handle as OpenGLLabelResourceHandle;
         OpenGLModelResourceHandle model_handle = label.model.handle as OpenGLModelResourceHandle;
@@ -201,8 +175,9 @@ public class OpenGLRenderer : RenderTarget
             OpenGLFunctions.glBindVertexArray(model_handle.array_handle);
         }
 
-        Transform model_transform = transform.mul(label.get_final_transform());
-        program.render_object(model_handle.triangle_count, model_transform, label.material, true);
+        Mat4 model_matrix = label.get_label_transform().get_full_matrix();
+        program.render_object(model_handle.triangle_count, model_matrix, label.material, true);
+        debug_3D_draws++;
     }
 
     private void render_scene_2D(RenderScene2D scene)
@@ -231,13 +206,13 @@ public class OpenGLRenderer : RenderTarget
                 scissors = obj.scissor;
             }
 
-            Type type = obj.get_type();
-            if (type == typeof(RenderImage2D))
-                render_image_2D((RenderImage2D)obj, program, aspect);
-            else if (type == typeof(RenderLabel2D))
-                render_label_2D((RenderLabel2D)obj, program, scene.screen_size, aspect);
-            else if (type == typeof(RenderRectangle2D))
-                render_rectangle_2D((RenderRectangle2D)obj, program, aspect);
+            if (obj is RenderImage2D)
+                render_image_2D(obj as RenderImage2D, program, aspect);
+            else if (obj is RenderLabel2D)
+                render_label_2D(obj as RenderLabel2D, program, scene.screen_size, aspect);
+            else if (obj is RenderRectangle2D)
+                render_rectangle_2D(obj as RenderRectangle2D, program, aspect);
+            debug_2D_draws++;
         }
 
         if (scissors)
@@ -281,34 +256,6 @@ public class OpenGLRenderer : RenderTarget
         Mat3 model_transform = Calculations.get_model_matrix_3(rectangle.position, rectangle.rotation, rectangle.scale, aspect);
         program.render_object(model_transform, rectangle.diffuse_color, false);
     }
-
-    /*private void post_process_draw(RenderState state)
-    {
-        glUseProgram(post_processing_shader_program);
-
-        //1st pass
-        glBindFramebuffer(GL_FRAMEBUFFER, second_pass_object[0]);
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        glBindTexture(GL_TEXTURE_2D, frame_buffer_object_texture[0]);
-
-        glUniform1f(bloom_attrib, (GLfloat)state.bloom);
-        glUniform1i(vertical_attrib, (GLboolean)1);
-
-        glBindBuffer(GL_ARRAY_BUFFER, frame_buffer_object_vertices[0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        //2nd pass
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, second_pass_object_texture[0]);
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1iv(pp_texture_location, 2, samplers);
-
-        glUniform1i(vertical_attrib, (GLboolean)0);
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    }*/
 
     ///////////////////////////
 
@@ -452,7 +399,7 @@ public class OpenGLRenderer : RenderTarget
 
     protected override bool change_shader_3D(string name)
     {
-        OpenGLShaderProgram3D program = new OpenGLShaderProgram3D("./Data/Shaders/" + name, MAX_LIGHTS, POSITION_ATTRIBUTE, TEXTURE_ATTRIBUTE, NORMAL_ATTRIBUTE);
+        OpenGLShaderProgram3D program = new OpenGLShaderProgram3D(MAX_LIGHTS, POSITION_ATTRIBUTE, TEXTURE_ATTRIBUTE, NORMAL_ATTRIBUTE);
         if (!program.init())
             return false;
 
@@ -462,7 +409,7 @@ public class OpenGLRenderer : RenderTarget
 
     protected override bool change_shader_2D(string name)
     {
-        OpenGLShaderProgram2D program = new OpenGLShaderProgram2D("./Data/Shaders/" + name);
+        OpenGLShaderProgram2D program = new OpenGLShaderProgram2D();
         if (!program.init())
             return false;
 
@@ -477,17 +424,76 @@ public class OpenGLRenderer : RenderTarget
         view_size = size;
 
         glViewport(0, 0, view_size.width, view_size.height);
-        reshape();
     }
 
-    private void reshape()
+    private void get_debug_messages()
     {
-        /*primary_buffer.resize(view_width, view_height);
-        secondary_buffer.resize(view_width, view_height);
-        render_buffer.resize(view_width, view_height);*/
+        uint8 buffer[8192];
+
+        uint sources[1];
+        uint types[1];
+        uint ids[1];
+        uint severities[1];
+        int lengths[1];
+
+        while (true)
+        {
+            uint ret = glGetDebugMessageLog
+            (
+                1,
+                buffer.length,
+                sources,
+                types,
+                ids,
+                severities,
+                lengths,
+                buffer
+            );
+
+            if (ret == 0)
+                break;
+
+            string msg = (string)buffer;
+            DebugMessage message = new DebugMessage(sources[0], types[0], ids[0], severities[0], msg);
+
+            log_debug_message(message);
+        }
+    }
+
+    private void log_debug_message(DebugMessage message)
+    {
+        EngineLog.log(EngineLogType.DEBUG, "OpenGLRenderer", message.message);
+    }
+
+    protected override string[] get_debug_strings()
+    {
+        return
+        {
+            "3D draws: " + debug_3D_draws.to_string(),
+            "2D draws: " + debug_2D_draws.to_string(),
+            "Scene switches: " + debug_scene_switches.to_string()
+        };
     }
 
     // Private classes
+
+    class DebugMessage
+    {
+        public DebugMessage(uint source, uint message_type, uint id, uint severity, string message)
+        {
+            this.source = source;
+            this.message_type = message_type;
+            this.id = id;
+            this.severity = severity;
+            this.message = message;
+        }
+
+        public uint source { get; private set; }
+        public uint message_type { get; private set; }
+        public uint id { get; private set; }
+        public uint severity { get; private set; }
+        public string message { get; private set; }
+    }
 
     class OpenGLModelResourceHandle : IModelResourceHandle, Object
     {

@@ -1,23 +1,77 @@
 public class Camera
 {
+    private bool dirty_rotation = true;
+    private float _roll;
+    private float _pitch;
+    private float _yaw;
+    private Vec3 _position;
+    private Transform view_transform;
+
     public Camera()
     {
         focal_length = 1;
+        view_transform = new CameraTransform();
     }
 
-    public Mat4 get_view_transform()
+    public Transform get_view_transform()
     {
-        Quat rot = new Quat.from_euler(pitch, yaw, 0).mul(new Quat.from_euler(0, 0, roll)); // Apply roll last
-        Mat4 r = Calculations.rotation_matrix_quat(rot);
-        Mat4 p = Calculations.translation_matrix(position.negate());
+        if (dirty_rotation)
+        {
+            view_transform.rotation = new Quat.from_euler(yaw, pitch, 0).mul(new Quat.from_euler(0, 0, roll)); // Apply roll last
+            dirty_rotation = false;
+        }
 
-        return p.mul_mat(r);
+        return new Transform.with_mat(view_transform.copy_full_parentless().matrix.inverse());
     }
 
-    public float roll { get; set; }
-    public float pitch { get; set; }
-    public float yaw { get; set; }
+    public float roll
+    {
+        get { return _roll; }
+        set
+        {
+            if (_roll != value)
+            {
+                _roll = value;
+                dirty_rotation = true;
+            }
+        }
+    }
 
-    public Vec3 position { get; set; }
+    public float pitch
+    {
+        get { return _pitch; }
+        set
+        {
+            if (_pitch != value)
+            {
+                _pitch = value;
+                dirty_rotation = true;
+            }
+        }
+    }
+
+    public float yaw
+    {
+        get { return _yaw; }
+        set
+        {
+            if (_yaw != value)
+            {
+                _yaw = value;
+                dirty_rotation = true;
+            }
+        }
+    }
+
+    public Vec3 position
+    {
+        get { return _position; }
+        set
+        {
+            _position = value;
+            view_transform.position = value;
+        }
+    }
+
     public float focal_length { get; set; }
 }

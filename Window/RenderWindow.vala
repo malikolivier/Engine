@@ -25,8 +25,9 @@ public abstract class RenderWindow
 
         while (running)
         {
-            process(get_delta());
-            renderer.set_state(render());
+            var delta = get_delta();
+            process(delta);
+            renderer.set_state(render(delta), this);
             GLib.Thread.usleep(1000);
         }
     }
@@ -36,9 +37,9 @@ public abstract class RenderWindow
         running = false;
     }
 
-    private RenderState render()
+    private RenderState render(DeltaArgs delta)
     {
-        RenderState state = new RenderState(size, renderer.multithread_rendering);
+        RenderState state = new RenderState(size, renderer.multithread_rendering, delta);
         state.back_color = back_color;
         main_view.start_render(state);
         return state;
@@ -58,7 +59,7 @@ public abstract class RenderWindow
     {
         process_events();
         do_process(delta);
-        main_view.process(delta);
+        main_view.start_process(delta);
     }
 
     // TODO: Make this non-SDL specific

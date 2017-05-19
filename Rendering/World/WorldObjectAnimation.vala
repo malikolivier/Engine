@@ -10,7 +10,7 @@ public class WorldObjectAnimation
 	{
 		animation = new Animation(time);
 		animation.animate_start.connect(animation_start);
-		animation.animate.connect(animation_start);
+		animation.animate.connect(animation_animate);
 		animation.post_finished.connect(animation_finished);
 	}
 
@@ -19,39 +19,52 @@ public class WorldObjectAnimation
 		animation.process(args);
 	}
 
-	public void relative_position(Path3D path)
+	public void do_relative_position(Path3D path)
 	{
 		position_path = path;
-		use_position = true;
-		relative_position = true;
+		position_path.relative = true;
 	}
 
-	public void absolute_position(Path3D path, Vec3 start_position)
+	public void do_absolute_position(Path3D path)
 	{
 		position_path = path;
-		use_position = true;
-		relative_position = false;
-		this.start_position = start_position;
 	}
 
-	public void relative_scale(Path3D path)
+	public void do_relative_scale(Path3D path)
 	{
 		scale_path = path;
-		use_scale = true;
-		relative_scale = true;
+		scale_path.relative = true;
 	}
 
-	public void absolute_scale(PathQuat path, Quat start_rotation)
+	public void do_absolute_scale(Path3D path)
+	{
+		scale_path = path;
+	}
+
+	public void do_relative_rotation(PathQuat path)
 	{
 		rotation_path = path;
-		use_rotation = true;
-		relative_rotation = false;
-		this.start_rotation = start_rotation;
+		rotation_path.relative = true;
+	}
+
+	public void do_absolute_rotation(PathQuat path)
+	{
+		rotation_path = path;
+	}
+
+	public void do_finish()
+	{
+		animation_animate(1);
+		animation_finished();
 	}
 
 	private void animation_start()
 	{
 		start(this);
+		
+		if (position_path != null) position_path.init(start_position);
+		if (scale_path != null) scale_path.init(start_scale);
+		if (rotation_path != null) rotation_path.init(start_rotation);
 	}
 
 	private void animation_animate(float time)
@@ -61,24 +74,16 @@ public class WorldObjectAnimation
 
 	private void animation_finished()
 	{
-		finished(this);
+		finish(this);
 	}
-
-	public bool use_position { get; private set; }
-	public bool use_scale { get; private set; }
-	public bool use_rotation { get; private set; }
-
-	public bool relative_position { get; private set; }
-	public bool relative_scale { get; private set; }
-	public bool relative_rotation { get; private set; }
 	
 	public Vec3 start_position { get; set; }
 	public Vec3 start_scale { get; set; }
 	public Quat start_rotation { get; set; }
 
-	public Path3D position_path { get; private set; }
-	public Path3D position_path { get; private set; }
-	public PathQuat position_path { get; private set; }
+	public Path3D? position_path { get; private set; }
+	public Path3D? scale_path { get; private set; }
+	public PathQuat? rotation_path { get; private set; }
 	
 	public Curve curve { get { return animation.curve; } set { animation.curve = value; } }
 }

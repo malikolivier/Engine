@@ -97,6 +97,23 @@ public class FileLoader
         return File.new_for_path(name).query_exists();
     }
 
+    public static string[] split_string(string str, bool retain_newline = false)
+    {
+        string[] ret = str.split("\n");
+
+        for (int i = 0; i < ret.length; i++)
+        {
+            string s = ret[i];
+            if (s[s.length - 1] == '\r')
+                s = s.substring(0, s.length - 1);
+            if (retain_newline)
+                s += "\n";
+            ret[i] = s;
+        }
+
+        return ret;
+    }
+
     public static string[] get_files_in_dir(string name)
     {
         ArrayList<string> files = new ArrayList<string>();

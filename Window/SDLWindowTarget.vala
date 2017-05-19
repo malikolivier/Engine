@@ -10,9 +10,9 @@ public class SDLWindowTarget : Object, IWindowTarget
     private Cursor hover_cursor;
     private Cursor caret_cursor;
 
-    public SDLWindowTarget(Window window, bool is_fullscreen)
+    public SDLWindowTarget(void *window, bool is_fullscreen)
     {
-        this.window = window;
+        this.window = (Window)window;
         this.is_fullscreen = is_fullscreen;
 
         normal_cursor = new Cursor.from_system(SystemCursor.ARROW);
@@ -122,6 +122,5 @@ public class SDLWindowTarget : Object, IWindowTarget
         Clipboard.set_text(text);
     }
 
-    public Window sdl_window { get { return window; } }
     public CursorType current_cursor { get; private set; }
 }

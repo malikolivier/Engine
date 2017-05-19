@@ -1,6 +1,6 @@
 using Gee;
 
-public abstract class Transformable3D : Object
+public abstract class Transformable3D : IResource
 {
     protected Transformable3D()
     {
@@ -9,16 +9,17 @@ public abstract class Transformable3D : Object
 
     public Transformable3D copy()
     {
-        Transformable3D t = copy_transformable();
-        t.transform = transform.copy();
-
-        return t;
+        return copy_transformable(transform.copy_full_parentless());
     }
 
-    protected abstract Transformable3D copy_transformable();
-    public virtual Transform get_final_transform() { return transform; }
+    protected Transformable3D copy_internal()
+    {
+        return copy_transformable(transform.copy_shallow_parentless());
+    }
+
+    protected abstract Transformable3D copy_transformable(Transform transform);
     
-    public Transform transform { get; private set; }
+    public Transform transform { get; set; }
 }
 
 public class RenderGeometry3D : Transformable3D
@@ -32,6 +33,9 @@ public class RenderGeometry3D : Transformable3D
     {
         geometry = new ArrayList<Transformable3D>();
         geometry.add_all(objects);
+
+        foreach (RenderObject3D obj in objects)
+            obj.transform.change_parent(transform);
     }
 
     public RenderGeometry3D.with_transformables(ArrayList<Transformable3D> geometry)
@@ -39,12 +43,17 @@ public class RenderGeometry3D : Transformable3D
         this.geometry = geometry;
     }
 
-    public override Transformable3D copy_transformable()
+    public override Transformable3D copy_transformable(Transform transform)
     {
         RenderGeometry3D geo = new RenderGeometry3D();
+        geo.transform = transform;
 
         foreach (Transformable3D transformable in geometry)
-            geo.geometry.add(transformable.copy());
+        {
+            var trans = transformable.copy_internal();
+            geo.geometry.add(trans);
+            trans.transform.change_parent(geo.transform);
+        }
 
         return geo;
     }

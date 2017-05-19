@@ -6,9 +6,11 @@ public abstract class RenderObject3D : Transformable3D
         this.material = material;
     }
 
-    protected override Transformable3D copy_transformable()
+    protected override Transformable3D copy_transformable(Transform transform)
     {
         RenderObject3D obj = copy_object();
+        
+        obj.transform = transform;
         obj.model = model;
         obj.material = material.copy();
 
@@ -63,26 +65,32 @@ public class RenderLabel3D : RenderObject3D
         material.ambient_color = Color.none();
         material.diffuse_color = Color.none();
         material.specular_color = Color.none();
-        size = 1;
     }
 
     protected override RenderObject3D copy_object()
     {
         RenderLabel3D img = new RenderLabel3D(reference, model);
-        img.material = material;
+        img.material = material.copy();
         img.info = info;
         img._font_type = _font_type;
         img._font_size = _font_size;
         img._text = _text;
         img._bold = _bold;
-        img.size = size;
 
         return img;
     }
 
     private void update()
     {
-        info = reference.update(font_type, font_size, text);
+        info = reference.update(get_full_font_type(), font_size, text);
+    }
+
+    private string get_full_font_type()
+    {
+        string font = font_type;
+        if (bold)
+            font += " Bold";
+        return font;
     }
 
     public LabelInfo? info { get; private set; }
@@ -90,13 +98,7 @@ public class RenderLabel3D : RenderObject3D
 
     public string font_type
     {
-        owned get
-        {
-            string font = _font_type;
-            if (bold)
-                font += " Bold";
-            return font;
-        }
+        get { return _font_type; }
         set
         {
             if (_font_type == value)
@@ -148,13 +150,17 @@ public class RenderLabel3D : RenderObject3D
 
     public Color color
     {
-        get;// { return Color(material.diffuse_color.r + 1, material.diffuse_color.g + 1, material.diffuse_color.b + 1, material.diffuse_color.a); }
-        set;// { material.diffuse_color = Color(value.r - 1, value.g - 1, value.b - 1, value.a); }
+        get { return Color(material.diffuse_color.r + 1, material.diffuse_color.g + 1, material.diffuse_color.b + 1, material.diffuse_color.a + 1); }
+        set
+        {
+            material.diffuse_color = Color(value.r - 1, value.g - 1, value.b - 1, value.a - 1);
+            material.ambient_color = material.diffuse_color;
+        }
     }
 
-    public override Transform get_final_transform()
+    public Transform get_label_transform()
     {
-        Transform t = transform.copy();
+        Transform t = transform.copy_full_parentless();
 
         Vec3 s = font_sizing();
         t.scale = Vec3(t.scale.x * s.x, t.scale.y * s.y, t.scale.z * s.z);
@@ -167,21 +173,13 @@ public class RenderLabel3D : RenderObject3D
         return Vec3(info.size.width / font_size * FONT_SIZE_MULTIPLIER * _size, 1, info.size.height / font_size * FONT_SIZE_MULTIPLIER * _size);
     }
 
-    public Vec3 end_scale
-    {
-        get
-        {
-            Vec3 sizing = font_sizing();
-            return Vec3(_scale.x * info.size.width / font_size * FONT_SIZE_MULTIPLIER * _size, 1, _scale.z * info.size.height / font_size * FONT_SIZE_MULTIPLIER * _size);
-        }
-    }
-
     public Vec3 end_size
     {
         get
         {
-            Vec3 scale = end_scale;
-            return Vec3(model.size.x * scale.x, 0, model.size.z * scale.z);
+            Vec3 font_scale = font_sizing();
+            Vec3 trans_scale = transform.scale;
+            return Vec3(model.size.x * font_scale.x * trans_scale.x, 0, model.size.z * font_scale.z * trans_scale.z);
         }
     }
 

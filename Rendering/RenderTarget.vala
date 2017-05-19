@@ -9,6 +9,14 @@ public abstract class RenderTarget : Object
     private Mutex state_mutex = Mutex();
     private Mutex prop_mutex = Mutex();
 
+    private MainView debug_main_view;
+    private DebugView debug_view;
+    private DebugInfo? debug_info;
+    private int debug_external_fps;
+    private int debug_internal_fps;
+    private int debug_new_external_fps;
+    private int debug_new_internal_fps;
+
     private Mutex resource_mutex = Mutex();
     private ArrayList<IModelResourceHandle> to_load_models = new ArrayList<IModelResourceHandle>();
     private ArrayList<ITextureResourceHandle> to_load_textures = new ArrayList<ITextureResourceHandle>();
@@ -31,10 +39,11 @@ public abstract class RenderTarget : Object
     protected IWindowTarget window;
     protected ResourceStore store;
 
-    public RenderTarget(IWindowTarget window, bool multithread_rendering)
+    public RenderTarget(IWindowTarget window, bool multithread_rendering, bool debug)
     {
         this.window = window;
         this.multithread_rendering = multithread_rendering;
+        this.debug = debug;
         anisotropic_filtering = true;
         v_sync = saved_v_sync;
     }
@@ -44,14 +53,21 @@ public abstract class RenderTarget : Object
         stop();
     }
 
-    public void set_state(RenderState state)
+    public void set_state(RenderState state, RenderWindow window)
     {
-        state_mutex.lock();
-        buffer_state = state;
-        state_mutex.unlock();
+        debug_new_internal_fps++;
 
-        if (!multithread_rendering)
-            render_cycle(buffer_state);
+        if (debug)
+            add_debug_info(state, window);
+        
+        if (multithread_rendering)
+        {
+            state_mutex.lock();
+            buffer_state = state;
+            state_mutex.unlock();
+        }
+        else
+            render_cycle(state);
     }
 
     public bool init()
@@ -67,7 +83,7 @@ public abstract class RenderTarget : Object
             state_mutex.lock();
             window.pump_events();
             
-            if (current_state == buffer_state)
+            if (current_state == buffer_state && current_state == null)
             {
                 state_mutex.unlock();
                 Thread.usleep(1000);
@@ -147,12 +163,16 @@ public abstract class RenderTarget : Object
 
     private void render_cycle(RenderState state)
     {
+        debug_new_external_fps++;
+
         if (timer.elapsed())
             do_secondly();
 
         unload_resources();
         load_resources();
         check_settings();
+        if (debug)
+            update_debug();
         prepare_state_internal(state);
         render(state);
         window.swap();
@@ -307,7 +327,47 @@ public abstract class RenderTarget : Object
         }
     }
 
-    public Transform get_projection_matrix(float view_angle, float aspect_ratio)
+    private void add_debug_info(RenderState state, RenderWindow window)
+    {
+        if (debug_main_view == null)
+        {
+            debug_main_view = new MainView(window);
+            debug_view = new DebugView();
+
+            debug_main_view.add_child(debug_view);
+        }
+
+        debug_main_view.set_window(window);
+        debug_main_view.resize();
+        state_mutex.lock();
+        DebugInfo info = debug_info;
+        state_mutex.unlock();
+        debug_view.info = info;
+        debug_main_view.start_process(state.delta);
+        debug_main_view.start_render(state);
+    }
+
+    private void update_debug()
+    {
+        string[] strings =
+        {
+            "FPS: " + debug_external_fps.to_string(),
+            "CPS: " + debug_internal_fps.to_string(),
+            "Model handles: " + handles_models.size.to_string(),
+            "Texture handles: " + handles_textures.size.to_string(),
+            "Label handles: " + handles_labels.size.to_string()
+        };
+
+        DebugInfo info = new DebugInfo();
+        info.add_strings(strings);
+        info.add_strings(get_debug_strings());
+
+        state_mutex.lock();
+        debug_info = info;
+        state_mutex.unlock();
+    }
+
+    public Mat4 get_projection_matrix(float view_angle, float aspect_ratio)
     {
         view_angle   *= 0.6f;
         float z_near  = 0.5f * aspect_ratio;
@@ -319,15 +379,12 @@ public abstract class RenderTarget : Object
         float vtan1 = 1 / (float)Math.tan(view_angle);
         float vtan2 = vtan1 * aspect_ratio;
 
-        Vec4 v1 = {vtan1,    0,               0,                   0                  };
-        Vec4 v2 = {0,        vtan2,           0,                   0                  };
-        Vec4 v3 = {0,        0,              -z_plus / z_minus,   -2 * z_mul / z_minus};
-        Vec4 v4 = {0,        0,              -1,                   0                  };
+        Vec4 v1 = {vtan1,    0,               0,                 0                  };
+        Vec4 v2 = {0,        vtan2,           0,                 0                  };
+        Vec4 v3 = {0,        0,              -z_plus / z_minus, -2 * z_mul / z_minus};
+        Vec4 v4 = {0,        0,              -1,                 0                  };
 
-        Transform transform = new Transform();
-        transform.matrix = new Mat4.with_vecs(v1, v2, v3, v4);
-        return transform;
-
+        return new Mat4.with_vecs(v1, v2, v3, v4);
     }
 
     public abstract void render(RenderState state);
@@ -348,12 +405,20 @@ public abstract class RenderTarget : Object
     protected abstract void change_v_sync(bool v_sync);
     protected abstract bool change_shader_3D(string name);
     protected abstract bool change_shader_2D(string name);
-    protected virtual void do_secondly() {}
+    protected virtual string[] get_debug_strings() { return new string[0]; }
+    protected virtual void do_secondly()
+    {
+        debug_external_fps = debug_new_external_fps;
+        debug_internal_fps = debug_new_internal_fps;
+        debug_new_external_fps = 0;
+        debug_new_internal_fps = 0;
+    }
 
     public ResourceStore resource_store { get { return store; } }
     public bool v_sync { get; set; }
     public bool anisotropic_filtering { get; set; }
     public bool multithread_rendering { get; private set; }
+    public bool debug { get; private set; }
 
     public string shader_3D
     {

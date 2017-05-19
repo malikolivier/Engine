@@ -1,10 +1,9 @@
 public class MainView : Container
 {
-    public MainView(RenderWindow window)
+    public MainView(RenderWindow? window)
     {
         base();
-        parent_window = window;
-        resize();
+        set_window(window);
     }
 
     public void start_render(RenderState state)
@@ -12,6 +11,20 @@ public class MainView : Container
         RenderScene2D scene = new RenderScene2D(parent_window.size, rect);
         render(state, scene);
         state.add_scene(scene);
+    }
+
+    public void start_process(DeltaArgs args)
+    {
+        process(args);
+    }
+
+    public void set_window(RenderWindow? window)
+    {
+        if (parent_window == window)
+            return;
+        
+        parent_window = window;
+        resize();
     }
 }
 

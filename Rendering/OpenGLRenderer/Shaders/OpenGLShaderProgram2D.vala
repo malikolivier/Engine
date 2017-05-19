@@ -14,12 +14,16 @@ class OpenGLShaderProgram2D
     private int use_texture_attrib = -1;
     private int diffuse_color_attrib = -1;
 
-    public OpenGLShaderProgram2D(string name)
+    public OpenGLShaderProgram2D()
     {
         vert_position_attribute = 0;
 
-        vertex_shader = new OpenGLShader(name + ".vert", OpenGLShader.ShaderType.VERTEX_SHADER);
-        fragment_shader = new OpenGLShader(name + ".frag", OpenGLShader.ShaderType.FRAGMENT_SHADER);
+        OpenGLShaderBuilder builder = new OpenGL2DShaderBuilder();
+        string vert = builder.create_vertex_shader();
+        string frag = builder.create_fragment_shader();
+
+        vertex_shader = new OpenGLShader(FileLoader.split_string(vert, true), OpenGLShader.ShaderType.VERTEX_SHADER);
+        fragment_shader = new OpenGLShader(FileLoader.split_string(frag, true), OpenGLShader.ShaderType.FRAGMENT_SHADER);
     }
 
     public bool init()
@@ -34,11 +38,6 @@ class OpenGLShaderProgram2D
         glAttachShader(program, vertex_shader.handle);
         glAttachShader(program, fragment_shader.handle);
 
-		//pp_texture_location = glGetUniformLocation(post_processing_shader_program, "textures");
-		//bloom_attrib = glGetUniformLocation(post_processing_shader_program,"bloom");
-		//vertical_attrib = glGetUniformLocation(post_processing_shader_program,"vertical");
-
-        //glBindFragDataLocation(program, 0, "gl_FragColor");
         glBindAttribLocation(program, vert_position_attribute, "position");
 
         glLinkProgram(program);

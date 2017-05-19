@@ -40,6 +40,16 @@ public class Mat4
     {
         identity = false;
     }
+	
+	public bool equals(Mat4 other)
+	{
+		return
+			this == other ||
+			(v1 == other.v1 &&
+			 v2 == other.v2 &&
+			 v3 == other.v3 &&
+			 v4 == other.v4);
+	}
 
     private void check_is_identity()
     {
@@ -60,7 +70,7 @@ public class Mat4
             v4.x == 0 &&
             v4.y == 0 &&
             v4.z == 0 &&
-            v4.w == 1 &&
+            v4.w == 1
         );
     }
 
@@ -69,7 +79,7 @@ public class Mat4
         if (inverse_matrix != null)
             return inverse_matrix;
         
-        if (is_identity)
+        if (identity)
             return this;
 
         float mat[16], inv[16];
@@ -103,6 +113,8 @@ public class Mat4
             return mat;
         if (mat.identity)
             return this;
+        if (inverse_matrix == mat || this == mat.inverse_matrix)
+            return new Mat4();
         
         Vec4 vec1 =
         {
@@ -169,27 +181,25 @@ public class Mat4
         else             return v4;
     }
 
-    public Vec3 get_position_vec3()
+    public Vec3 get_position()
     {
-        return Vec3(v4.x, v4.y, v4.z);
+        return Vec3(v1.w, v2.w, v3.w);
     }
 
-    public Vec4 get_position_vec4()
+    public Vec3 get_scale()
     {
-        return v4;
+        return Vec3
+        (
+            /*Vec3(v1.x, v2.x, v3.x).length(),
+            Vec3(v1.y, v2.y, v3.y).length(),
+            Vec3(v1.z, v2.z, v3.z).length()*/
+            Vec3(v1.x, v1.y, v1.z).length(),
+            Vec3(v2.x, v2.y, v2.z).length(),
+            Vec3(v3.x, v3.y, v3.z).length()
+        );
     }
 
-    public Vec3 get_scale_vec3()
-    {
-        return Vec3(v1.x, v2.y, v3.z);
-    }
-
-    public Vec4 get_scale_vec4()
-    {
-        return Vec3(v1.x, v2.y, v3.z, v4.w);
-    }
-
-    public Quat get_rotation_quat()
+    public Quat get_rotation()
     {
         float w = Math.sqrtf(Math.fmaxf(0, 1 + v1.x + v2.y + v3.z)) / 2;
         float x = Math.sqrtf(Math.fmaxf(0, 1 + v1.x - v2.y - v3.z)) / 2;
@@ -199,7 +209,7 @@ public class Mat4
         y *= Calculations.sign(y * (v1.z - v3.x));
         z *= Calculations.sign(z * (v2.x - v1.y));
 
-        return Quat.vals(w, x, y, z);
+        return new Quat.vals(w, x, y, z);
     }
 
     public float[] get_data()
@@ -207,14 +217,33 @@ public class Mat4
         if (data != null)
             return data;
 
-        data = new float[16];
-        Vec4 *v = (Vec4*)data;
+        float[] d = new float[16];
+        Vec4 *v = (Vec4*)d;
         v[0] = v1;
         v[1] = v2;
         v[2] = v3;
         v[3] = v4;
 
-        return data;
+        data = d;
+
+        return d;
+    }
+
+    public float[] get_transpose_data()
+    {
+        if (data != null)
+            return data;
+
+        float[] d = new float[16];
+        Vec4 *v = (Vec4*)d;
+        v[0] = col(0);
+        v[1] = col(1);
+        v[2] = col(2);
+        v[3] = col(3);
+
+        data = d;
+
+        return d;
     }
 
     public float get(int i)

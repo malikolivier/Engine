@@ -1,4 +1,5 @@
 using Gee;
+using Engine;
 
 public abstract class RenderScene : Object {}
 
@@ -29,7 +30,7 @@ public class RenderScene3D : RenderScene
         float scale = float.min(max_w, max_h);
         scale = float.max(scale, 0);
 
-        scene_transform = Calculations.scale_matrix(Vec3(scale, scale, scale)).mul_mat(Calculations.translation_matrix(scene_translation));
+        scene_matrix = Calculations.scale_matrix(Vec3(scale, scale, scale)).mul_mat(Calculations.translation_matrix(scene_translation));
 
         set_camera(new Camera());
     }
@@ -46,15 +47,15 @@ public class RenderScene3D : RenderScene
 
     public void set_camera(Camera camera)
     {
-        view_transform = camera.get_view_transform();
+        view_matrix = camera.get_view_transform().get_full_matrix().mul_mat(new Mat4());
         camera_position = camera.position;
         focal_length = camera.focal_length;
     }
 
     public ArrayList<Transformable3D> objects { get { return objs; } }
     public ArrayList<LightSource> lights { get { return _lights; } }
-    public Mat4 scene_transform { get; private set; }
-    public Mat4 view_transform { get; private set; }
+    public Mat4 scene_matrix { get; private set; }
+    public Mat4 view_matrix { get; private set; }
     public Vec3 camera_position { get; private set; }
     public float focal_length { get; private set; }
     public Rectangle rect { get; private set; }

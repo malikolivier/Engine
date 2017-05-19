@@ -4,20 +4,15 @@ public class WorldLight : WorldObject
 
 	public WorldLight()
 	{
-
-	}
-
-	protected override void add_object(RenderScene3D scene)
-	{
-		scene.add_light(light);
-	}
-
-	protected override void apply_transform(Mat4 transform)
-	{
 		light.transform = transform;
 	}
 
-	public override void start_custom_animation(WorldAnimation animation)
+	protected override void add_to_scene(RenderScene3D scene)
+	{
+		scene.add_light_source(light);
+	}
+
+	public override void start_custom_animation(WorldObjectAnimation animation)
 	{
 		if (!(animation is WorldLightAnimation))
 			return;
@@ -28,7 +23,7 @@ public class WorldLight : WorldObject
 			ani.start_intensity = intensity;
 	}
 
-	public override void process_custom_animation(WorldAnimation animation)
+	public override void process_custom_animation(WorldObjectAnimation animation, float time)
 	{
 		if (!(animation is WorldLightAnimation))
 			return;
@@ -39,7 +34,7 @@ public class WorldLight : WorldObject
 			intensity = ani.intensity_curve.map(time);
 	}
 
-	public float intensity { get { return light.intensity; } set { light.instensity = value; } }
+	public float intensity { get { return light.intensity; } set { light.intensity = value; } }
 }
 
 public class WorldLightAnimation : WorldObjectAnimation
@@ -49,14 +44,14 @@ public class WorldLightAnimation : WorldObjectAnimation
 		base(time);
 	}
 
-	public void relative_intensity(Curve curve)
+	public void do_relative_intensity(Curve curve)
 	{
 		intensity_curve = curve;
 		use_intensity = true;
 		relative_intensity = true;
 	}
 
-	public void absolute_intensity(Curve curve, float start_intensity)
+	public void do_absolute_intensity(Curve curve, float start_intensity)
 	{
 		intensity_curve = curve;
 		use_intensity = true;
@@ -64,7 +59,7 @@ public class WorldLightAnimation : WorldObjectAnimation
 		this.start_intensity = start_intensity;
 	}
 
-	public bool use_instensity { get; private set; }
+	public bool use_intensity { get; private set; }
 	public bool relative_intensity { get; private set; }
 	public float start_intensity { get; set; }
 	public Curve intensity_curve { get; private set; }

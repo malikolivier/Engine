@@ -13,7 +13,6 @@ public class OpenGLShaderProgram3D
     private int vert_texture_attribute;
     private int vert_normal_attribute;
 
-    //private int texture_attrib = -1;
     private int projection_transform_attrib = -1;
     private int view_transform_attrib = -1;
     private int model_transform_attrib = -1;
@@ -33,14 +32,22 @@ public class OpenGLShaderProgram3D
     private int specular_exponent_attrib = -1;
     private int alpha_attrib = -1;
 
-    public OpenGLShaderProgram3D(string name, int max_lights, int vert_position_attribute, int vert_texture_attribute, int vert_normal_attribute)
+    public OpenGLShaderProgram3D(int max_lights, int vert_position_attribute, int vert_texture_attribute, int vert_normal_attribute)
     {
         this.vert_position_attribute = vert_position_attribute;
         this.vert_texture_attribute = vert_texture_attribute;
         this.vert_normal_attribute = vert_normal_attribute;
 
-        vertex_shader = new OpenGLShader(name + ".vert", OpenGLShader.ShaderType.VERTEX_SHADER);
-        fragment_shader = new OpenGLShader(name + ".frag", OpenGLShader.ShaderType.FRAGMENT_SHADER);
+        bool high_quality = true;
+        OpenGLShaderBuilder builder = new OpenGLStandardShaderBuilder(high_quality);
+        string vert = builder.create_vertex_shader();
+        string frag = builder.create_fragment_shader();
+
+        FileLoader.save("vert.shader", FileLoader.split_string(vert));
+        FileLoader.save("frag.shader", FileLoader.split_string(frag));
+
+        vertex_shader = new OpenGLShader(FileLoader.split_string(vert, true), OpenGLShader.ShaderType.VERTEX_SHADER);
+        fragment_shader = new OpenGLShader(FileLoader.split_string(frag, true), OpenGLShader.ShaderType.FRAGMENT_SHADER);
 
         lights = new OpenGLLightSource[max_lights];
 
@@ -60,18 +67,12 @@ public class OpenGLShaderProgram3D
         glAttachShader(program, vertex_shader.handle);
         glAttachShader(program, fragment_shader.handle);
 
-		//pp_texture_location = glGetUniformLocation(post_processing_shader_program, "textures");
-		//bloom_attrib = glGetUniformLocation(post_processing_shader_program,"bloom");
-		//vertical_attrib = glGetUniformLocation(post_processing_shader_program,"vertical");
-
         glBindAttribLocation(program, vert_position_attribute, "position");
         glBindAttribLocation(program, vert_texture_attribute, "texture_coord");
         glBindAttribLocation(program, vert_normal_attribute, "normal");
-        //glBindFragDataLocation(program, 0, "gl_FragColor");
 
         glLinkProgram(program);
 
-        //texture_attrib = glGetUniformLocation(program, "tex");
         projection_transform_attrib = glGetUniformLocation(program, "projection_transform");
         view_transform_attrib = glGetUniformLocation(program, "view_transform");
         model_transform_attrib = glGetUniformLocation(program, "model_transform");
@@ -108,30 +109,25 @@ public class OpenGLShaderProgram3D
     {
         glUseProgram(program);
     }
-
-    public void apply_scene(Transform projection_transform, Transform view_transform, ArrayList<LightSource> lights)
+    
+    public void apply_scene(Mat4 proj_mat, Mat4 view_mat, ArrayList<LightSource> lights)
     {
         use_program();
 
-        Mat4 proj_mat = projection_transform.matrix;
-        Mat4 view_mat = view_transform.matrix;
-
-        glUniformMatrix4fv(projection_transform_attrib, 1, false, proj_mat.get_data());
-        glUniformMatrix4fv(view_transform_attrib, 1, false, view_mat.get_data());
-        glUniformMatrix4fv(un_projection_transform_attrib, 1, false, proj_mat.inverse().get_data());
-        glUniformMatrix4fv(un_view_transform_attrib, 1, false, view_mat.inverse().get_data());
+        glUniformMatrix4fv(projection_transform_attrib, 1, false, proj_mat.get_transpose_data());
+        glUniformMatrix4fv(view_transform_attrib, 1, false, view_mat.get_transpose_data());
+        glUniformMatrix4fv(un_projection_transform_attrib, 1, false, proj_mat.inverse().get_transpose_data());
+        glUniformMatrix4fv(un_view_transform_attrib, 1, false, view_mat.inverse().get_transpose_data());
         glUniform1i(light_count_attrib, lights.size);
 
         for (int i = 0; i < lights.size; i++)
-            this.lights[i].apply(lights[i].position, lights[i].color, lights[i].intensity);
+            this.lights[i].apply(lights[i].transform, lights[i].color, lights[i].intensity);
     }
 
-    public void render_object(int triangle_count, Transform model_transform, RenderMaterial material, bool use_texture)
+    public void render_object(int triangle_count, Mat4 model_mat, RenderMaterial material, bool use_texture)
     {
-        Mat4 mat = model_transform.matrix;
-
-        glUniformMatrix4fv(model_transform_attrib, 1, false, mat.get_data());
-        glUniformMatrix4fv(un_model_transform_attrib, 1, false, mat.inverse().get_data());
+        glUniformMatrix4fv(model_transform_attrib, 1, false, model_mat.get_transpose_data());
+        glUniformMatrix4fv(un_model_transform_attrib, 1, false, model_mat.inverse().get_transpose_data());
 
         glUniform1i(use_texture_attrib, (int)use_texture);
         glUniform4f(ambient_color_attrib, material.ambient_color.r, material.ambient_color.g, material.ambient_color.b, material.ambient_color.a);

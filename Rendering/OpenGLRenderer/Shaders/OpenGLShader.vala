@@ -2,12 +2,12 @@ using GL;
 
 class OpenGLShader
 {
-    private string file;
+    private string[] source;
     private ShaderType shader_type;
 
-    public OpenGLShader(string file, ShaderType type)
+    public OpenGLShader(string[] source, ShaderType type)
     {
-        this.file = file;
+        this.source = source;
         shader_type = type;
     }
 
@@ -27,17 +27,7 @@ class OpenGLShader
             return false;
         }
 
-        string[] source = FileLoader.load(file);
-        if (source == null || source.length == 0)
-        {
-            EngineLog.log(EngineLogType.RENDERING, "OpenGLShader", "Could not load shader file (" + shader_type.to_string() + ")");
-            return false;
-        }
-
         handle = glCreateShader(type);
-
-        for (int i = 0; i < source.length; i++)
-            source[i] = source[i] + "\n"; // Pendantic due to bug in vala...
 
         glShaderSource(handle, source.length, source, null);
 		glCompileShader(handle);

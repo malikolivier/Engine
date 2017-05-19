@@ -1,9 +1,13 @@
 public class Transform
 {
-	private Mat4 _matrix;
-	private Vec3 _position;
-	private Vec3 _scale;
-	private Quat _rotation;
+	protected Mat4? _matrix;
+	protected Vec3 _position;
+	protected Vec3 _scale;
+	protected Quat? _rotation;
+
+	protected Transform? _parent;
+	protected Mat4? _parent_matrix;
+	protected Mat4? _full_matrix;
 
 	public Transform()
 	{
@@ -12,9 +16,17 @@ public class Transform
 		_rotation = new Quat();
 	}
 
+	public Transform.with_mat(Mat4 mat)
+	{
+		_matrix = mat;
+		dirty_position = true;
+		dirty_scale = true;
+		dirty_rotation = true;
+	}
+
 	private Transform.copy_init() {}
 
-	public Transform copy()
+	public Transform copy_shallow_parentless()
 	{
 		Transform t = new Transform.copy_init();
 
@@ -30,20 +42,91 @@ public class Transform
 		return t;
 	}
 
-	public void change_parent(Transform from, Transform to)
+	public Transform copy_full_parentless()
 	{
-		unapply_transform(from);
-		apply_transform(to);
+		Transform t = new Transform.copy_init();
+
+		t._matrix = get_full_matrix();
+		t.dirty_position = true;
+		t.dirty_scale = true;
+		t.dirty_rotation = true;
+
+		return t;
+	}
+
+	/*public Transform mul(Transform other)
+	{
+		return new Transform.with_mat(matrix.mul_mat(other.matrix));
+	}*/
+
+	public void change_parent(Transform? parent)
+	{
+		if (_parent == parent)
+			return;
+			
+		_parent = parent;
+		_parent_matrix = null;
+		_full_matrix = null;
+	}
+
+	public void convert_to_parent(Transform? parent)
+	{
+		if (_parent == parent)
+			return;
+
+		if (_parent != null)
+			apply_transform(_parent);
+
+		_parent = parent;
+		_parent_matrix = null;
+		_full_matrix = null;
+
+		if (parent != null)
+		{
+			_parent_matrix = parent.get_full_matrix();
+			unapply_matrix(_parent_matrix);
+		}
 	}
 
 	public void apply_transform(Transform t)
 	{
-		matrix = t.mul_mat(matrix);
+		apply_matrix(t.get_full_matrix());
+	}
+
+	public void apply_matrix(Mat4 mat)
+	{
+		matrix = mat.mul_mat(matrix);
 	}
 
 	public void unapply_transform(Transform t)
 	{
-		matrix = t.mul_mat(t.inverse());
+		unapply_matrix(t.get_full_matrix());
+	}
+
+	public void unapply_matrix(Mat4 mat)
+	{
+		matrix = mat.inverse().mul_mat(matrix);
+	}
+
+	protected virtual Mat4 calculate_matrix()
+	{
+		return Calculations.get_model_matrix(_position, _scale, _rotation);
+	}
+
+	public Mat4 get_full_matrix()
+	{
+		if (_parent == null)
+			return matrix;
+		
+		Mat4 m = _parent.get_full_matrix();
+		
+		if (_full_matrix == null || _parent_matrix == null || dirty_matrix || !m.equals(_parent_matrix))
+		{
+			_parent_matrix = m;
+			_full_matrix = m.mul_mat(matrix);
+		}
+
+		return _full_matrix;
 	}
 
 	public Mat4 matrix
@@ -52,7 +135,7 @@ public class Transform
 		{
 			if (dirty_matrix)
 			{
-				_matrix = Calculations.get_model_matrix(_position, _scale, _rotation);
+				_matrix = calculate_matrix();
 				dirty_matrix = false;
 			}
 
@@ -79,7 +162,7 @@ public class Transform
 		{
 			if (dirty_position)
 			{
-				_position = _matrix.get_position_vec3();
+				_position = _matrix.get_position();
 				dirty_position = false;
 			}
 
@@ -92,9 +175,9 @@ public class Transform
 				return;
 			
 			// Undirty
-			get_scale();
-			get_rotation();
-				
+			_scale = scale;
+			_rotation = rotation;
+			
 			dirty_matrix = true;
 			dirty_position = false;
 
@@ -108,7 +191,7 @@ public class Transform
 		{
 			if (dirty_scale)
 			{
-				_scale = _matrix.get_scale_vec3();
+				_scale = _matrix.get_scale();
 				dirty_scale = false;
 			}
 
@@ -121,8 +204,8 @@ public class Transform
 				return;
 			
 			// Undirty
-			get_position();
-			get_rotation();
+			_position = position;
+			_rotation = rotation;
 				
 			dirty_matrix = true;
 			dirty_scale = false;
@@ -137,7 +220,7 @@ public class Transform
 		{
 			if (dirty_rotation)
 			{
-				_rotation = _matrix.get_rotation_quat();
+				_rotation = _matrix.get_rotation();
 				dirty_rotation = false;
 			}
 
@@ -146,12 +229,12 @@ public class Transform
 
 		set
 		{
-			if (_rotation.equals(value))
+			if (_rotation != null && _rotation.equals(value))
 				return;
 			
 			// Undirty
-			get_position();
-			get_scale();
+			_position = position;
+			_scale = scale;
 				
 			dirty_matrix = true;
 			dirty_rotation = false;
@@ -164,4 +247,12 @@ public class Transform
 	public bool dirty_position { get; private set; }
 	public bool dirty_scale { get; private set; }
 	public bool dirty_rotation { get; private set; }
+}
+
+public class CameraTransform : Transform
+{
+	protected override Mat4 calculate_matrix()
+	{
+		return Calculations.translation_matrix(_position).mul_mat(Calculations.rotation_matrix_quat(_rotation));
+	}
 }

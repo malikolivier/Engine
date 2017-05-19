@@ -5,37 +5,59 @@ public class Quat
         w = 1;
     }
 
-    public Quat.from_euler(float roll, float pitch, float yaw)
+    public Quat.from_euler(float yaw, float pitch, float roll)
     {
-		init(roll, pitch, yaw);
+		init(yaw, pitch, roll);
     }
 
     public Quat.from_euler_vec(Vec3 vec)
     {
         init(vec.x, vec.y, vec.z);
     }
+
+    public Quat.from_direction(Vec3 from, Vec3 to)
+    {
+        Vec3 h = from.plus(to).normalize();
+
+        w = from.dot(h);
+        x = from.y * h.z - from.z * h.y;
+        y = from.z * h.x - from.x * h.z;
+        z = from.x * h.y - from.y * h.x;
+    }
 	
-	private void init(float roll, float pitch, float yaw)
+	private void init(float yaw, float pitch, float roll)
 	{
         // Multiply with pi to simplify use
-        float pi = (float)Math.PI;
-        roll  *= pi;
-        pitch *= pi;
-        yaw   *= pi;
+        float tau = (float)Math.PI / 2;
+        yaw   *= tau;
+        pitch *= tau;
+        roll  *= tau;
 
-        float cr = (float)Math.cos(roll  / 2);
-        float cp = (float)Math.cos(pitch / 2);
-        float cy = (float)Math.cos(yaw   / 2);
-        float sr = (float)Math.sin(roll  / 2);
-        float sp = (float)Math.sin(pitch / 2);
-        float sy = (float)Math.sin(yaw   / 2);
+        /*float cr = (float)Math.cos(roll);
+        float cp = (float)Math.cos(pitch);
+        float cy = (float)Math.cos(yaw);
+        float sr = (float)Math.sin(roll);
+        float sp = (float)Math.sin(pitch);
+        float sy = (float)Math.sin(yaw);
         float cpcy = cp * cy;
         float spsy = sp * sy;
 
         w = cr * cpcy + sr * spsy;
         x = sr * cpcy - cr * spsy;
         y = cr * sp * cy + sr * cp * sy;
-        z = cr * cp * sy - sr * sp * cy;
+        z = cr * cp * sy - sr * sp * cy;*/
+        
+        float t0 = (float)Math.cos(roll);
+        float t1 = (float)Math.sin(roll);
+        float t2 = (float)Math.cos(pitch);
+        float t3 = (float)Math.sin(pitch);
+        float t4 = (float)Math.cos(yaw);
+        float t5 = (float)Math.sin(yaw);
+
+        w = t0 * t2 * t4 + t1 * t3 * t5;
+        x = t0 * t3 * t4 - t1 * t2 * t5;
+        y = t0 * t2 * t5 + t1 * t3 * t4;
+        z = t1 * t2 * t4 - t0 * t3 * t5;
 	}
 
     public Quat.vals(float w, float x, float y, float z)
@@ -117,6 +139,30 @@ public class Quat
         return new Quat.vals(w, -x, -y, -z);
     }
 
+    public Vec3 to_euler()
+    {
+        float ysqr = y * y;
+
+        // pitch (x-axis rotation)
+        float t0 = 2 * (w * x + y * z);
+        float t1 = 1 - 2 * (x * x + ysqr);
+        float pitch = Math.atan2f(t0, t1);
+
+        // yaw (y-axis rotation)
+        float t2 = 2 * (w * y - z * x);
+        t2 = t2 > 1 ? 1 : t2;
+        t2 = t2 < -1 ? -1 : t2;
+        float yaw = Math.asinf(t2);
+
+        // roll (z-axis rotation)
+        float t3 = 2 * (w * z + x * y);
+        float t4 = 1 - 2 * (ysqr + z * z);
+        float roll = Math.atan2f(t3, t4);
+
+        // Divide by pi to simplify use
+        return Vec3(yaw, pitch, roll).div_scalar((float)Math.PI);
+    }
+
     private const float SLERP_THRESHOLD = 0.9995f;
     public static Quat slerp(Quat from, Quat to, float t)
     {
@@ -157,11 +203,6 @@ public class Quat
             scale0 * from.y + scale1 * nto.y,
             scale0 * from.z + scale1 * nto.z
         );
-    }
-
-    public Vec3 vec()
-    {
-        return Vec3(x, y, z);
     }
 
     public float w { get; private set; }

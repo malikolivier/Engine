@@ -85,42 +85,6 @@ public class Calculations
         return Vec3(ray_dir.x, ray_dir.y, ray_dir.z).normalize();
     }
 
-    /*public static float get_collision_distance(RenderBody3D obj, Vec3 origin, Vec3 ray)
-    {
-        float x_size = obj.model.size.x / 2 * obj.scale.x;
-        float y_size = obj.model.size.y / 2 * obj.scale.y;
-        float z_size = obj.model.size.z / 2 * obj.scale.z;
-
-        Vec3 rot = obj.rotation.negate();
-        Vec3 xy_dir = rotate(Vec3.empty(), rot, Vec3(0, 0, 1));
-        Vec3 xz_dir = rotate(Vec3.empty(), rot, Vec3(0, 1, 0));
-        Vec3 yz_dir = rotate(Vec3.empty(), rot, Vec3(1, 0, 0));
-
-        Vec3 xy = xy_dir.mul_scalar(z_size);
-        Vec3 xz = xz_dir.mul_scalar(y_size);
-        Vec3 yz = yz_dir.mul_scalar(x_size);
-
-        Vec3 xy_pos = obj.position.plus (xy);
-        Vec3 xy_neg = obj.position.minus(xy);
-        Vec3 xz_pos = obj.position.plus (xz);
-        Vec3 xz_neg = obj.position.minus(xz);
-        Vec3 yz_pos = obj.position.plus (yz);
-        Vec3 yz_neg = obj.position.minus(yz);
-
-        float dist = -1;
-
-        dist = calc_dist(dist, collision_surface_distance(origin, ray, xy_pos, xy_dir, yz_dir, xz_dir, x_size, y_size));
-        dist = calc_dist(dist, collision_surface_distance(origin, ray, xy_neg, xy_dir, yz_dir, xz_dir, x_size, y_size));
-        dist = calc_dist(dist, collision_surface_distance(origin, ray, xz_pos, xz_dir, yz_dir, xy_dir, x_size, z_size));
-        dist = calc_dist(dist, collision_surface_distance(origin, ray, xz_neg, xz_dir, yz_dir, xy_dir, x_size, z_size));
-        dist = calc_dist(dist, collision_surface_distance(origin, ray, yz_pos, yz_dir, xy_dir, xz_dir, z_size, y_size));
-        dist = calc_dist(dist, collision_surface_distance(origin, ray, yz_neg, yz_dir, xy_dir, xz_dir, z_size, y_size));
-
-        return dist;
-
-        return -1;
-    }*/
-
     public static float get_collision_distance
     (
         Vec3 ray_origin,
@@ -275,39 +239,31 @@ public class Calculations
 
     public static Mat4 rotation_matrix_quat(Quat quat)
     {
-        float x2 = quat.x + quat.x;
-        float y2 = quat.y + quat.y;
-        float z2 = quat.z + quat.z;
-        float xx = quat.x * x2;
-        float xy = quat.x * y2;
-        float xz = quat.x * z2;
-        float yy = quat.y * y2;
-        float yz = quat.y * z2;
-        float zz = quat.z * z2;
-        float wx = quat.w * x2;
-        float wy = quat.w * y2;
-        float wz = quat.w * z2;
+        float x = quat.x;
+        float y = quat.y;
+        float z = quat.z;
+        float w = quat.w;
 
-        float m[16];
-        m[ 0] = 1 - (yy + zz);
-        m[ 1] = xy - wz;
-        m[ 2] = xz + wy;
-        m[ 3] = 0;
+        float x2 = x + x;
+        float y2 = y + y;
+        float z2 = z + z;
+        float xx = x * x2;
+        float xy = x * y2;
+        float xz = x * z2;
+        float yy = y * y2;
+        float yz = y * z2;
+        float zz = z * z2;
+        float wx = w * x2;
+        float wy = w * y2;
+        float wz = w * z2;
 
-        m[ 4] = xy + wz;
-        m[ 5] = 1 - (xx + zz);
-        m[ 6] = yz - wx;
-        m[ 7] = 0;
-
-        m[ 8] = xz - wy;
-        m[ 9] = yz + wx;
-        m[10] = 1 - (xx + yy);
-        m[11] = 0;
-
-        m[12] = 0;
-        m[13] = 0;
-        m[14] = 0;
-        m[15] = 1;
+        float m[16] =
+        {
+            1 - (yy + zz),       xy - wz,       xz + wy, 0,
+                  xy + wz, 1 - (xx + zz),       yz - wx, 0,
+                  xz - wy,       yz + wx, 1 - (xx + yy), 0,
+                        0,             0,             0, 1
+        };
 
         return new Mat4.with_array(m);
     }
@@ -316,10 +272,10 @@ public class Calculations
     {
         float[] vals =
         {
-            1,     0,     0,     0,
-            0,     1,     0,     0,
-            0,     0,     1,     0,
-            vec.x, vec.y, vec.z, 1
+            1,    0,    0, vec.x,
+            0,    1,    0, vec.y,
+            0,    0,    1, vec.z,
+            0,    0,    0,     1
         };
 
         return new Mat4.with_array(vals);
@@ -344,7 +300,7 @@ public class Calculations
         Mat4 s = scale_matrix(scale);
         Mat4 r = rotation_matrix_quat(rotation);
 
-        return s.mul_mat(r).mul_mat(t);
+        return t.mul_mat(r).mul_mat(s);
     }
 
     public static Mat3 rotation_matrix_3(float angle)
@@ -396,54 +352,7 @@ public class Calculations
         return s.mul_mat(r).mul_mat(a).mul_mat(p);
     }
 
-    public static Vec3 rotation_mod(Vec3 rotation)
-    {
-        float x = rotation.x % 2;
-        float y = rotation.y % 2;
-        float z = rotation.z % 2;
-
-        if (x < 0)
-            x += 2;
-        if (y < 0)
-            y += 2;
-        if (z < 0)
-            z += 2;
-
-        return Vec3(x, y, z);
-    }
-
-    public static Vec3 rotation_ease(Vec3 rotation, Vec3 target)
-    {
-        rotation = rotation_mod(rotation);
-        target = rotation_mod(target);
-
-        float x = rotation.x;
-        float y = rotation.y;
-        float z = rotation.z;
-
-        float dist_x = rotation.x - target.x;
-        float dist_y = rotation.y - target.y;
-        float dist_z = rotation.z - target.z;
-
-        if (dist_x > 1)
-            x -= 2;
-        else if (dist_x < -1)
-            x += 2;
-
-        if (dist_y > 1)
-            y -= 2;
-        else if (dist_y < -1)
-            y += 2;
-
-        if (dist_z > 1)
-            z -= 2;
-        else if (dist_z < -1)
-            z += 2;
-
-        return Vec3(x, y, z);
-    }
-
-    public static int sign(double n)
+    public static int sign(float n)
     {
         if (n > 0) return 1;
         if (n < 0) return -1;

@@ -5,6 +5,8 @@ public abstract class WorldObject
 	private ArrayList<WorldObjectAnimation> buffered_animations = new ArrayList<WorldObjectAnimation>();
 	private ArrayList<WorldObjectAnimation> unbuffered_animations = new ArrayList<WorldObjectAnimation>();
 
+	public signal void animation_finished(WorldObject object, WorldObjectAnimation animation);
+
 	protected WorldObject()
 	{
 		transform = new Transform();
@@ -13,19 +15,12 @@ public abstract class WorldObject
 	public void process(DeltaArgs args)
 	{
 		foreach (var animation in unbuffered_animations)
-		{
 			animation.process(args);
-			if (animation.finished)
-				unbuffered_animations.remove(animation);
-		}
 
 		if (buffered_animations.size > 0)
-		{
-			var animation = buffered_animations[0];
-			animation.process(args);
-			if (animation.finished)
-				buffered_animations.remove_at(0);
-		}
+			buffered_animations[0].process(args);
+		
+		do_process(args);
 	}
 
 	public void animate(WorldObjectAnimation animation, bool buffered = true)
@@ -43,9 +38,9 @@ public abstract class WorldObject
 	public void finish_animations()
 	{
 		foreach (var animation in unbuffered_animations)
-			animation.finish();
+			animation.do_finish();
 		foreach (var animation in buffered_animations)
-			animation.finish();
+			animation.do_finish();
 		unbuffered_animations.clear();
 		buffered_animations.clear();
 	}
@@ -71,27 +66,27 @@ public abstract class WorldObject
 		buffered_animations.remove(animation);
 		unbuffered_animations.remove(animation);
 	}
-
+	
 	private void start_animation(WorldObjectAnimation animation)
 	{
-		if (animation.relative_position)
-			animation.start_position = current_position;
-		if (animation.relative_scale)
-			animation.start_scale = current_scale;
-		if (animation.relative_rotation)
-			animation.start_rotation = current_rotation;
+		if (animation.position_path != null)
+			animation.start_position = transform.position;
+		if (animation.scale_path != null)
+			animation.start_scale = transform.scale;
+		if (animation.rotation_path != null)
+			animation.start_rotation = transform.rotation;
 		
 		start_custom_animation(animation);
 	}
 
 	private void process_animation(WorldObjectAnimation animation, float time)
 	{
-		if (animation.use_position)
-			transform.position = position_path.map(time);
-		if (animation.use_scale)
-			transform.scale = scale_path.map(time);
-		if (animation.use_rotation)
-			transform.rotation = rotation_path.map(time);
+		if (animation.position_path != null)
+			transform.position = animation.position_path.map(time);
+		if (animation.scale_path != null)
+			transform.scale = animation.scale_path.map(time);
+		if (animation.rotation_path != null)
+			transform.rotation = animation.rotation_path.map(time);
 
 		process_custom_animation(animation, time);
 		apply_transform(transform);
@@ -100,18 +95,15 @@ public abstract class WorldObject
 	private void finish_animation(WorldObjectAnimation animation)
 	{
 		remove_animation(animation);
+		animation_finished(this, animation);
 	}
 
-	protected virtual void start_custom_animation(WorldObjectAnimation animation, DeltaArgs args) {}
+	protected virtual void start_custom_animation(WorldObjectAnimation animation) {}
 	protected virtual void process_custom_animation(WorldObjectAnimation animation, float time) {}
 
-	public void set_parent_transform(Transform transform)
-	{
-		
-	}
-
-	protected abstract void apply_transform(Transform transform);
-	protected abstract void add_object(RenderScene3D scene);
+	protected virtual void do_process(DeltaArgs args) {}
+	protected virtual void apply_transform(Transform transform) {}
+	public virtual void add_to_scene(RenderScene3D scene) {}
 
 	public Transform transform { get; private set; }
 }

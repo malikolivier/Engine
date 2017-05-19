@@ -12,7 +12,7 @@ public class LightSource
     public LightSource copy()
     {
         LightSource light = new LightSource.empty();
-        light.transform = transform.copy();
+        light.transform = transform.copy_full_parentless();
         light.color = color;
         light.intensity = intensity;
 

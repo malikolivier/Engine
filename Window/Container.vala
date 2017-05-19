@@ -1,6 +1,7 @@
 using Gee;
+using Engine;
 
-public abstract class Container : Object
+public abstract class Container
 {
     private bool _loaded = false;
     private Vec2 _position = Vec2(0, 0);
@@ -67,7 +68,7 @@ public abstract class Container : Object
         animations.remove(animation);
     }
 
-    public void process(DeltaArgs delta)
+    protected void process(DeltaArgs delta)
     {
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
             children[i].process(delta);
@@ -76,7 +77,7 @@ public abstract class Container : Object
         do_process(delta);
     }
 
-    public virtual void render(RenderState state, RenderScene2D scene)
+    protected virtual void render(RenderState state, RenderScene2D scene)
     {
         if (!visible)
             return;

@@ -1,6 +1,6 @@
 using Gee;
 
-public class ResourceStore : Object
+public class ResourceStore
 {
     private unowned RenderTarget renderer;
     private AudioPlayer audio = new AudioPlayer();
@@ -146,7 +146,7 @@ public class ResourceStore : Object
     {
         var handle = renderer.load_label();
         LabelResourceReference reference = new LabelResourceReference(handle, this);
-        RenderLabel3D label = new RenderLabel3D(reference, load_model("field", "Plane"));
+        RenderLabel3D label = new RenderLabel3D(reference, create_plane().model);
 
         return label;
     }
@@ -156,7 +156,7 @@ public class ResourceStore : Object
         renderer.unload_label(reference.handle);
     }
 
-    private void cache_object(string name, CacheObjectType type, Object obj)
+    private void cache_object(string name, CacheObjectType type, IResource obj)
     {
         cache.add(new ResourceCacheObject(name, type, obj));
     }
@@ -184,6 +184,28 @@ public class ResourceStore : Object
         return label_loader.generate_label_bitmap(label.font_type, label.font_size, label.text);
     }
 
+    public RenderBody3D? create_plane()
+    {
+        ModelData plane = BasicGeometry.get_plane();
+        RenderModel model = load_static_model(plane, "plane");
+
+        return new RenderBody3D(model, new RenderMaterial());
+    }
+
+    private RenderModel? load_static_model(ModelData data, string name)
+    {
+        ResourceCacheObject? cache = get_cache_object(name, CacheObjectType.MODEL);
+        if (cache != null)
+            return (RenderModel)cache.obj;
+
+        InputResourceModel mod = new InputResourceModel(data.points);
+        var handle = renderer.load_model(mod);
+        RenderModel model = new RenderModel(handle, data.name, data.size);
+        cache_object(name, CacheObjectType.MODEL, model);
+
+        return model;
+    }
+
     public AudioPlayer audio_player { get { return audio; } }
 
     /*public abstract RenderModel? load_model_dir(string dir, string name, bool center);
@@ -198,7 +220,7 @@ public class ResourceStore : Object
 
     private class ResourceCacheObject
     {
-        public ResourceCacheObject(string name, CacheObjectType type, Object obj)
+        public ResourceCacheObject(string name, CacheObjectType type, IResource obj)
         {
             this.name = name;
             this.obj_type = type;
@@ -207,12 +229,12 @@ public class ResourceStore : Object
 
         public string name { get; private set; }
         public CacheObjectType obj_type { get; private set; }
-        public Object obj { get; private set; }
+        public IResource obj { get; private set; }
     }
 
     private enum CacheObjectType
     {
-        MODEL, // Not used anymore
+        MODEL,
         TEXTURE,
         MATERIAL, // Not used at all
         GEOMETRY
@@ -273,7 +295,7 @@ public class LabelResourceReference
     public bool deleted { get; private set; }
 }
 
-public class RenderModel : Object
+public class RenderModel : IResource
 {
     public RenderModel(IModelResourceHandle handle, string name, Vec3 size)
     {
@@ -287,7 +309,7 @@ public class RenderModel : Object
     public Vec3 size { get; private set; }
 }
 
-public class RenderTexture : Object
+public class RenderTexture : IResource
 {
     public RenderTexture(ITextureResourceHandle handle, Size2i size)
     {
@@ -298,3 +320,5 @@ public class RenderTexture : Object
     public ITextureResourceHandle handle { get; private set; }
     public Size2i size { get; private set; }
 }
+
+public class IResource {}
