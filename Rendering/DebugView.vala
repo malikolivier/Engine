@@ -45,19 +45,3 @@ public class DebugView : View2D
 
     public DebugInfo? info { get; set; }
 }
-
-public class DebugInfo
-{
-    public DebugInfo()
-    {
-        this.strings = new ArrayList<string>();
-    }
-
-    public void add_strings(string[] strings)
-    {
-        foreach (string s in strings)
-            this.strings.add(s);
-    }
-
-    public ArrayList<string> strings { get; private set; }
-}

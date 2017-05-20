@@ -13,6 +13,7 @@ DIRS  = \
 
 PKGS  = \
 	--thread \
+	--target-glib 2.32 \
 	--pkg gio-2.0 \
 	--pkg glew \
 	--pkg gee-0.8 \
@@ -42,7 +43,7 @@ OUT   = bin/$(NAME)
 VAPI  = --vapidir=vapi
 #-w = Supress C warnings (Since they stem from the vala code gen)
 OTHER = -X -w -X -DGLEW_NO_GLU
-O     = --library=$(NAME) --vapi $(OUT).vapi -X -shared -H $(OUT).h -o $(OUT)
+O     = --library=$(NAME) --vapi $(OUT).vapi -X -shared -X -fPIC -H $(OUT).h -o $(OUT)
 DEBUG = -v --save-temps --enable-checking -g -X -ggdb -X -O0 -D DEBUG
 
 all: release

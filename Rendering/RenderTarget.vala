@@ -1,6 +1,6 @@
 using Gee;
 
-public abstract class RenderTarget : Object
+public abstract class RenderTarget
 {
     private RenderState? current_state = null;
     private RenderState? buffer_state = null;
@@ -172,7 +172,7 @@ public abstract class RenderTarget : Object
         load_resources();
         check_settings();
         if (debug)
-            update_debug();
+            update_debug(state);
         prepare_state_internal(state);
         render(state);
         window.swap();
@@ -295,34 +295,39 @@ public abstract class RenderTarget : Object
                 }
             }
             else if (scene is RenderScene3D)
+                update_labels_3D((scene as RenderScene3D).queue);
+        }
+    }
+
+    private void update_labels_3D(RenderQueue3D queue)
+    {
+        foreach (RenderQueue3D sub in queue.sub_queues)
+            update_labels_3D(sub);
+
+        foreach (RenderObject3D obj in queue.objects)
+        {
+            if (obj is RenderLabel3D)
             {
-                RenderScene3D s = scene as RenderScene3D;
-                foreach (Transformable3D obj in s.objects)
-                {
-                    if (obj is RenderLabel3D)
-                    {
-                        RenderLabel3D label = obj as RenderLabel3D;
-                        LabelResourceHandle handle = (LabelResourceHandle)label.reference.handle;
+                RenderLabel3D label = obj as RenderLabel3D;
+                LabelResourceHandle handle = (LabelResourceHandle)label.reference.handle;
 
-                        bool invalid = false;
-                        if (!handle.created ||
-                            label.font_type != handle.font_type ||
-                            label.font_size != handle.font_size ||
-                            label.text != handle.text)
-                            invalid = true;
+                bool invalid = false;
+                if (!handle.created ||
+                    label.font_type != handle.font_type ||
+                    label.font_size != handle.font_size ||
+                    label.text != handle.text)
+                    invalid = true;
 
-                        if (!invalid)
-                            continue;
+                if (!invalid)
+                    continue;
 
-                        LabelBitmap bitmap = store.generate_label_bitmap_3D(label);
-                        do_load_label(handle, bitmap);
+                LabelBitmap bitmap = store.generate_label_bitmap_3D(label);
+                do_load_label(handle, bitmap);
 
-                        handle.created = true;
-                        handle.font_type = label.font_type;
-                        handle.font_size = label.font_size;
-                        handle.text = label.text;
-                    }
-                }
+                handle.created = true;
+                handle.font_type = label.font_type;
+                handle.font_size = label.font_size;
+                handle.text = label.text;
             }
         }
     }
@@ -347,7 +352,7 @@ public abstract class RenderTarget : Object
         debug_main_view.start_render(state);
     }
 
-    private void update_debug()
+    private void update_debug(RenderState state)
     {
         string[] strings =
         {
@@ -360,6 +365,23 @@ public abstract class RenderTarget : Object
 
         DebugInfo info = new DebugInfo();
         info.add_strings(strings);
+
+        foreach (RenderScene scene in state.scenes)
+        {
+            if (scene is RenderScene3D)
+            {
+                RenderQueue3D queue = (scene as RenderScene3D).queue;
+
+                info.add_string("Model queues: " + queue.sub_queues.size.to_string());
+                
+                int i = 0;
+                foreach (RenderQueue3D sub in queue.sub_queues)
+                {
+                    info.add_string("Texture queues[" + (++i).to_string() + "]: " + sub.sub_queues[0].objects.size.to_string());
+                }
+            }
+        }
+        
         info.add_strings(get_debug_strings());
 
         state_mutex.lock();

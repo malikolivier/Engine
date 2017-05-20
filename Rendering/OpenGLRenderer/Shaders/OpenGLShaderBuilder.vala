@@ -20,7 +20,7 @@ private static void primitive_to_string(StringBuilder str, OpenGLShaderPrimitive
     if (type == OpenGLShaderPrimitiveType.CUSTOM)
         return;
 
-    string s;    
+    string s;
     if (type == OpenGLShaderPrimitiveType.SAMPLER2D)
         s = "sampler2D";
     else
@@ -485,6 +485,8 @@ public abstract class OpenGLShaderBuilder
         OpenGLShaderFunction main
     )
     {
+        tree.add(main);
+
         StringBuilder str = new StringBuilder();
         str.append("#version ");
         str.append(version.to_string());
@@ -493,8 +495,6 @@ public abstract class OpenGLShaderBuilder
         foreach (var unit in tree.get_list())
             if (!(unit is OpenGLShaderCodeBlock))
                 unit.to_string(str);
-        
-        main.to_string(str);
 
         return str.str;
     }

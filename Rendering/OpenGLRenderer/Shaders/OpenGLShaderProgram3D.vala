@@ -38,7 +38,7 @@ public class OpenGLShaderProgram3D
         this.vert_texture_attribute = vert_texture_attribute;
         this.vert_normal_attribute = vert_normal_attribute;
 
-        bool high_quality = true;
+        bool high_quality = false;
         OpenGLShaderBuilder builder = new OpenGLStandardShaderBuilder(high_quality);
         string vert = builder.create_vertex_shader();
         string frag = builder.create_fragment_shader();

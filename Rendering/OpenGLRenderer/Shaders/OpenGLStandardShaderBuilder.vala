@@ -123,10 +123,10 @@ public class OpenGLStandardShaderBuilder : OpenGLShaderBuilder
             do_calculate_lighting_code.add_dependency(define_local_vars_code);
         else
         {
-            vertex_main.add_dependency(diffuse_strength_varying);
-            vertex_main.add_dependency(specular_strength_varying);
             do_calculate_lighting_code.add_dependency(diffuse_strength_varying);
             do_calculate_lighting_code.add_dependency(specular_strength_varying);
+            fragment_main.add_dependency(diffuse_strength_varying);
+            fragment_main.add_dependency(specular_strength_varying);
         }
 
         add_vertex_block(vertex_start_code);

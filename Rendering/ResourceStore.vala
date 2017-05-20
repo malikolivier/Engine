@@ -304,6 +304,11 @@ public class RenderModel : IResource
         this.size = size;
     }
 
+    public override bool equals(IResource? other)
+    {
+        return other != null && handle == (other as RenderModel).handle;
+    }
+
     public IModelResourceHandle handle { get; private set; }
     public string name { get; private set; }
     public Vec3 size { get; private set; }
@@ -317,8 +322,16 @@ public class RenderTexture : IResource
         this.size = size;
     }
 
+    public override bool equals(IResource? other)
+    {
+        return other != null && handle == (other as RenderTexture).handle;
+    }
+
     public ITextureResourceHandle handle { get; private set; }
     public Size2i size { get; private set; }
 }
 
-public class IResource {}
+public abstract class IResource
+{
+    public virtual bool equals(IResource? other) { return false; }
+}

@@ -18,6 +18,8 @@ public class OpenGLRenderer : RenderTarget
 
     private int debug_2D_draws;
     private int debug_3D_draws;
+    private int debug_3D_texture_switches;
+    private int debug_3D_model_switches;
     private int debug_scene_switches;
 
     public OpenGLRenderer(IWindowTarget window, bool multithread_rendering, bool debug)
@@ -44,7 +46,6 @@ public class OpenGLRenderer : RenderTarget
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
 
-        glEnable(GL_LINE_SMOOTH);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_FRAMEBUFFER_SRGB);
@@ -71,6 +72,8 @@ public class OpenGLRenderer : RenderTarget
     {
         debug_2D_draws = 0;
         debug_3D_draws = 0;
+        debug_3D_texture_switches = 0;
+        debug_3D_model_switches = 0;
         debug_scene_switches = 0;
 
         setup_projection(state.screen_size);
@@ -106,24 +109,21 @@ public class OpenGLRenderer : RenderTarget
         int last_texture_handle = -1;
         int last_array_handle = -1;
 
-        foreach (Transformable3D obj in scene.objects)
-            render_transformable(obj, program, ref last_texture_handle, ref last_array_handle);
+        render_queue_3D(scene.queue, program, ref last_texture_handle, ref last_array_handle);
     }
 
-    private void render_transformable(Transformable3D transformable, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
+    private void render_queue_3D(RenderQueue3D queue, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
     {
-        if (transformable is RenderGeometry3D)
-            render_geometry_3D(transformable as RenderGeometry3D, program, ref last_texture_handle, ref last_array_handle);
-        else if (transformable is RenderBody3D)
-            render_body_3D(transformable as RenderBody3D, program, ref last_texture_handle, ref last_array_handle);
-        else if (transformable is RenderLabel3D)
-            render_label_3D(transformable as RenderLabel3D, program, ref last_texture_handle, ref last_array_handle);
-    }
+        foreach (RenderQueue3D sub in queue.sub_queues)
+            render_queue_3D(sub, program, ref last_texture_handle, ref last_array_handle);
 
-    private void render_geometry_3D(RenderGeometry3D geometry, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
-    {
-        foreach (Transformable3D obj in geometry.geometry)
-            render_transformable(obj, program, ref last_texture_handle, ref last_array_handle);
+        foreach (RenderObject3D obj in queue.objects)
+        {
+            if (obj is RenderBody3D)
+                render_body_3D(obj as RenderBody3D, program, ref last_texture_handle, ref last_array_handle);
+            else if (obj is RenderLabel3D)
+                render_label_3D(obj as RenderLabel3D, program, ref last_texture_handle, ref last_array_handle);
+        }
     }
 
     private void render_body_3D(RenderBody3D obj, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
@@ -142,6 +142,7 @@ public class OpenGLRenderer : RenderTarget
             {
                 last_texture_handle = (int)texture_handle.handle;
                 glBindTexture(GL_TEXTURE_2D, texture_handle.handle);
+                debug_3D_texture_switches++;
             }
         }
 
@@ -151,6 +152,7 @@ public class OpenGLRenderer : RenderTarget
         {
             last_array_handle = (int)model_handle.array_handle;
             OpenGLFunctions.glBindVertexArray(model_handle.array_handle);
+            debug_3D_model_switches++;
         }
 
         Mat4 model_matrix = obj.transform.get_full_matrix();
@@ -167,12 +169,14 @@ public class OpenGLRenderer : RenderTarget
         {
             last_texture_handle = (int)label_handle.handle;
             glBindTexture(GL_TEXTURE_2D, label_handle.handle);
+            debug_3D_texture_switches++;
         }
 
         if (last_array_handle != model_handle.array_handle)
         {
             last_array_handle = (int)model_handle.array_handle;
             OpenGLFunctions.glBindVertexArray(model_handle.array_handle);
+            debug_3D_model_switches++;
         }
 
         Mat4 model_matrix = label.get_label_transform().get_full_matrix();
@@ -471,6 +475,8 @@ public class OpenGLRenderer : RenderTarget
         {
             "3D draws: " + debug_3D_draws.to_string(),
             "2D draws: " + debug_2D_draws.to_string(),
+            "3D texture switches: " + debug_3D_texture_switches.to_string(),
+            "3D model switches: " + debug_3D_model_switches.to_string(),
             "Scene switches: " + debug_scene_switches.to_string()
         };
     }
