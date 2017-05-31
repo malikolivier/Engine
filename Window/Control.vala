@@ -158,27 +158,11 @@ public abstract class Control : Container
         if (!enabled || !visible || !selectable)
             return false;
 
-        Vec2 bottom_left = Vec2(rect.x, rect.y);
-        Vec2 top_right = Vec2(rect.x + rect.width, rect.y + rect.height);
-
-        if (!
-           (point.x >= bottom_left.x &&
-            point.x <= top_right.x &&
-            point.y >= bottom_left.y &&
-            point.y <= top_right.y))
+        if (!rect.contains_vec2i(point))
             return false;
 
         if (scissor)
-        {
-            bottom_left = Vec2(scissor_box.x, scissor_box.y);
-            top_right = Vec2(scissor_box.x + scissor_box.width, scissor_box.y + scissor_box.height);
-
-            return
-                point.x >= bottom_left.x &&
-                point.x <= top_right.x &&
-                point.y >= bottom_left.y &&
-                point.y <= top_right.y;
-        }
+            return scissor_box.contains_vec2i(point);
 
         return true;
     }

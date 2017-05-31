@@ -28,7 +28,6 @@ public abstract class RenderWindow
             var delta = get_delta();
             process(delta);
             renderer.set_state(render(delta), this);
-            GLib.Thread.usleep(1000);
         }
     }
 

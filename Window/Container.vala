@@ -18,7 +18,7 @@ public abstract class Container
     private ArrayList<Animation> animations = new ArrayList<Animation>();
     protected ArrayList<Container> children = new Gee.ArrayList<Container>();
     protected weak RenderWindow? parent_window;
-    private weak Container? parent;
+    protected weak Container? parent;
 
     public void add_child(Container child)
     {

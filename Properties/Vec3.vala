@@ -80,4 +80,12 @@ public struct Vec3
 
         return Vec3(x, y, z);
     }
+
+    public float get(int i)
+    {
+        if (i == 0) return x;
+        if (i == 1) return y;
+        if (i == 2) return z;
+        return 0;
+    }
 }

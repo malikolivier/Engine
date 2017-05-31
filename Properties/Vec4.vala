@@ -31,6 +31,16 @@ public struct Vec4
         return Vec4(x - other.x, y - other.y, z - other.z, w - other.w);
     }
 
+    public Vec3 vec3()
+    {
+        return Vec3(x / w, y / w, z / w);
+    }
+
+    public Vec2 vec2()
+    {
+        return Vec2(x / w, y / w);
+    }
+
     public float get(int i)
     {
         if (i == 0) return x;

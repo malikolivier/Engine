@@ -16,23 +16,20 @@ public class RenderScene3D : RenderScene
         queue = new RenderQueue3D();
         lights = new ArrayList<LightSource>();
 
-        focal_length = 1;
-
         Vec3 scene_translation = Vec3
         (
-            (rect.x + rect.width  / 2 - screen_size.width  / 2) * 2 / screen_size.width,
-            (rect.y + rect.height / 2 - screen_size.height / 2) * 2 / screen_size.height,
+            (rect.x + rect.width ) / screen_size.width  - 1,
+            (rect.y + rect.height) / screen_size.height - 1,
             0
         );
+        Vec3 scene_scale = Vec3
+        (
+            rect.width / screen_size.width,
+            rect.height / screen_size.height,
+            1
+        );
 
-        float max_w = rect.width  / screen_size.height / scene_aspect_ratio; // Screen height just to simplify away the screen aspect ratio
-        float max_h = rect.height / screen_size.height;
-
-        float scale = float.min(max_w, max_h);
-        scale = float.max(scale, 0);
-
-        scene_matrix = Calculations.scale_matrix(Vec3(scale, scale, scale)).mul_mat(Calculations.translation_matrix(scene_translation));
-
+        scene_matrix = Calculations.translation_matrix(scene_translation).mul_mat(Calculations.scale_matrix(scene_scale));
         set_camera(new Camera());
     }
 
@@ -49,8 +46,7 @@ public class RenderScene3D : RenderScene
     public void set_camera(Camera camera)
     {
         view_matrix = camera.get_view_transform().get_full_matrix();
-        camera_position = camera.position;
-        focal_length = camera.focal_length;
+        view_angle = camera.view_angle;
     }
 
     private void arrange_transformable(Transformable3D obj)
@@ -119,8 +115,7 @@ public class RenderScene3D : RenderScene
     public ArrayList<LightSource> lights { get; private set; }
     public Mat4 scene_matrix { get; private set; }
     public Mat4 view_matrix { get; private set; }
-    public Vec3 camera_position { get; private set; }
-    public float focal_length { get; private set; }
+    public float view_angle { get; private set; }
     public Rectangle rect { get; private set; }
     public Size2i screen_size { get; private set; }
 }

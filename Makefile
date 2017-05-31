@@ -43,28 +43,28 @@ OUT   = bin/$(NAME)
 VAPI  = --vapidir=vapi
 #-w = Supress C warnings (Since they stem from the vala code gen)
 OTHER = -X -w -X -DGLEW_NO_GLU
-O     = --library=$(NAME) --vapi $(OUT).vapi -X -shared -X -fPIC -H $(OUT).h -o $(OUT)
+O     = --library=$(NAME) --vapi $(OUT).vapi -X -Ofast -X -shared -X -fPIC -H $(OUT).h -o $(OUT)
 DEBUG = -v --save-temps --enable-checking -g -X -ggdb -X -O0 -D DEBUG
 
-all: release
+all: linuxRelease
 
-debug:
-	$(VALAC) $(O) $(DIRS) $(PKGS) $(VAPI) $(OTHER) $(DEBUG) -D LINUX
+linuxDebug:
+	$(VALAC) $(O).so $(DIRS) $(PKGS) $(VAPI) $(OTHER) $(DEBUG) -D LINUX
 
-release:
-	$(VALAC) $(O) $(DIRS) $(PKGS) $(VAPI) $(OTHER) -D LINUX
+linuxRelease:
+	$(VALAC) $(O).so $(DIRS) $(PKGS) $(VAPI) $(OTHER) -D LINUX
 
 macDebug:
 	$(VALAC) $(O) $(DIRS) $(PKGS) $(MAC) $(VAPI) $(OTHER) $(DEBUG) -D MAC
 
-mac:
+macRelease:
 	$(VALAC) $(O) $(DIRS) $(PKGS) $(MAC) $(VAPI) $(OTHER) -D MAC
 
 windowsDebug:
 	$(VALAC) $(O).dll $(DIRS) $(PKGS) $(WINDOWS) $(VAPI) $(OTHER) $(DEBUG) -D WINDOWS
 
-windows:
-	$(VALAC) $(O).dll $(DIRS) $(PKGS) $(WINDOWS) $(VAPI) $(OTHER) -D WINDOWS -X -mwindows
+windowsRelease:
+	$(VALAC) $(O).dll $(DIRS) $(PKGS) $(WINDOWS) $(VAPI) $(OTHER) -D WINDOWS
 
 clean:
 	rm -f $(OUT)*

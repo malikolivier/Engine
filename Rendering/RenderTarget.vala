@@ -365,22 +365,6 @@ public abstract class RenderTarget
 
         DebugInfo info = new DebugInfo();
         info.add_strings(strings);
-
-        foreach (RenderScene scene in state.scenes)
-        {
-            if (scene is RenderScene3D)
-            {
-                RenderQueue3D queue = (scene as RenderScene3D).queue;
-
-                info.add_string("Model queues: " + queue.sub_queues.size.to_string());
-                
-                int i = 0;
-                foreach (RenderQueue3D sub in queue.sub_queues)
-                {
-                    info.add_string("Texture queues[" + (++i).to_string() + "]: " + sub.sub_queues[0].objects.size.to_string());
-                }
-            }
-        }
         
         info.add_strings(get_debug_strings());
 
@@ -389,20 +373,25 @@ public abstract class RenderTarget
         state_mutex.unlock();
     }
 
-    public Mat4 get_projection_matrix(float view_angle, float aspect_ratio)
+    public Mat4 get_projection_matrix(float view_angle, Size2 size)
     {
-        view_angle   *= 0.6f;
-        float z_near  = 0.5f * aspect_ratio;
-        float z_far   =   30 * aspect_ratio;
+        view_angle *= (float)Math.PI / 180 / 2;
+        
+        float z_near  = 0.01f;
+        float z_far   =   600;
         float z_plus  = z_far + z_near;
         float z_minus = z_far - z_near;
         float z_mul   = z_far * z_near;
+        
+        float aspect = size.width / size.height;
+        float xfov = Math.fminf(1,     aspect);
+        float yfov = Math.fminf(1, 1 / aspect);
+        float vtan = (float)Math.tan(view_angle);
+        float vtanx = 1 / (vtan * xfov);
+        float vtany = 1 / (vtan * yfov);
 
-        float vtan1 = 1 / (float)Math.tan(view_angle);
-        float vtan2 = vtan1 * aspect_ratio;
-
-        Vec4 v1 = {vtan1,    0,               0,                 0                  };
-        Vec4 v2 = {0,        vtan2,           0,                 0                  };
+        Vec4 v1 = {vtanx,    0,               0,                 0                  };
+        Vec4 v2 = {0,        vtany,           0,                 0                  };
         Vec4 v3 = {0,        0,              -z_plus / z_minus, -2 * z_mul / z_minus};
         Vec4 v4 = {0,        0,              -1,                 0                  };
 

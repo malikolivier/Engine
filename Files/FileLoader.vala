@@ -104,7 +104,7 @@ public class FileLoader
         for (int i = 0; i < ret.length; i++)
         {
             string s = ret[i];
-            if (s[s.length - 1] == '\r')
+            if (s.length > 0 && s[s.length - 1] == '\r')
                 s = s.substring(0, s.length - 1);
             if (retain_newline)
                 s += "\n";

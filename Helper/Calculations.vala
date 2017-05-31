@@ -71,167 +71,51 @@ public class Calculations
         return p.plus(origin);
     }
 
-    public static Vec3 get_ray(Mat4 projection_matrix, Mat4 view_matrix, Vec2i point, Size2i size)
+    public static Ray get_ray(Mat4 projection_matrix, Mat4 view_matrix, Vec2i point, Size2 size)
     {
-        float aspect = (float)size.width / size.height;
-        float x = -(1 - (float)point.x / size.width  * 2) * aspect;
-        float y = -(1 - (float)point.y / size.height * 2) * aspect;
+        float x = point.x / size.width  * 2 - 1;
+        float y = point.y / size.height * 2 - 1;
 
-        // TODO: Why is this the unview matrix?
-        Mat4 unview_matrix = view_matrix.mul_mat(projection_matrix.inverse());
-        Vec4 vec = Vec4(x, y, 0, 1);
-        Vec4 ray_dir = unview_matrix.mul_vec(vec);
+        Mat4 unview_matrix = view_matrix.inverse();
+        Mat4 unprojection_matrix = projection_matrix.inverse();
+        Vec3 position = unview_matrix.get_position();
 
-        return Vec3(ray_dir.x, ray_dir.y, ray_dir.z).normalize();
+        Vec4 vec = unview_matrix.mul_vec(unprojection_matrix.mul_vec(Vec4(x, y, 0, 1)));
+        Vec3 ray_dir = vec.vec3().minus(position).normalize();
+
+        return Ray(position, ray_dir);
     }
 
-    public static float get_collision_distance
-    (
-        Vec3 ray_origin,
-        Vec3 ray_direction,
-        Vec3 model_obb,
-        Mat4 model_matrix
-    )
+    public static float get_collision_distance(Ray ray, Vec3 size, Mat4 model_matrix)
     {
-        return get_collision_distance_box(ray_origin, ray_direction, model_obb.mul_scalar(-0.5f), model_obb.mul_scalar(0.5f), model_matrix);
-    }
-
-    public static float get_collision_distance_box
-    (
-        Vec3 ray_origin,        // Ray origin, in world space
-        Vec3 ray_direction,     // Ray direction (NOT target position!), in world space. Must be normalize()'d.
-        Vec3 aabb_min,          // Minimum X,Y,Z coords of the mesh when not transformed at all.
-        Vec3 aabb_max,          // Maximum X,Y,Z coords. Often aabb_min*-1 if your mesh is centered, but it's not always the case.
-        Mat4 model_matrix       // Transformation applied to the mesh (which will thus be also applied to its bounding box)
-    )
-    {
-        // Intersection method from Real-Time Rendering and Essential Mathematics for Games
-        // Licensed under WTF public license (the best license)
-
         float tMin = 0.0f;
         float tMax = 100000.0f;
+        Vec3 delta = model_matrix.get_position().minus(ray.origin);
 
-        Vec3 OBBposition_worldspace = Vec3(model_matrix[12], model_matrix[13], model_matrix[14]);
-        Vec3 delta = OBBposition_worldspace.minus(ray_origin);
-
-        // Test intersection with the 2 planes perpendicular to the OBB's X axis
+        for (int i = 0; i < 3; i++)
         {
-            Vec3 xaxis = Vec3(model_matrix[0], model_matrix[1], model_matrix[2]);
-            float e = xaxis.dot(delta);
-            float f = ray_direction.dot(xaxis);
-            float l = xaxis.length();
-            l *= l;
+            Vec3 axis = Vec3(model_matrix[i], model_matrix[i + 4], model_matrix[i + 8]);
+            float e = axis.dot(delta);
+            float f = ray.direction.dot(axis);
 
-            if (Math.fabsf(f) > 0.001f)
+            if (Math.fabsf(f) < 0.001f) return -1;
+            
+            float l = axis.length();
+            l *= l * 0.5f;
+
+            float t1 = (e - size[i] * l) / f;
+            float t2 = (e + size[i] * l) / f;
+
+            if (t1 > t2)
             {
-                // Standard case
-                float t1 = (e + aabb_min.x * l) / f; // Intersection with the "left" plane
-                float t2 = (e + aabb_max.x * l) / f; // Intersection with the "right" plane
-                // t1 and t2 now contain distances betwen ray origin and ray-plane intersections
-
-                // We want t1 to represent the nearest intersection,
-                // so if it's not the case, invert t1 and t2
-                if (t1 > t2)
-                {
-                    // swap t1 and t2
-                    float w = t1;
-                    t1 = t2;
-                    t2 = w;
-                }
-
-                // tMax is the nearest "far" intersection (amongst the X,Y and Z planes pairs)
-                if (t2 < tMax)
-                    tMax = t2;
-                // tMin is the farthest "near" intersection (amongst the X,Y and Z planes pairs)
-                if (t1 > tMin)
-                    tMin = t1;
-
-                // And here's the trick :
-                // If "far" is closer than "near", then there is NO intersection.
-                // See the images in the tutorials for the visual explanation.
-                if (tMax < tMin)
-                    return -1;
+                float w = t1;
+                t1 = t2;
+                t2 = w;
             }
-            else
-            {
-                // Rare case : the ray is almost parallel to the planes, so they don't have any "intersection"
-                if (-e + aabb_min.x > 0.0f || -e + aabb_max.x < 0.0f)
-                    return -1;
-            }
-        }
 
-        // Test intersection with the 2 planes perpendicular to the OBB's Y axis
-        // Exactly the same thing as above.
-        {
-            Vec3 yaxis = Vec3(model_matrix[4], model_matrix[5], model_matrix[6]);
-            float e = yaxis.dot(delta);
-            float f = ray_direction.dot(yaxis);
-            float l = yaxis.length();
-            l *= l;
-
-            if (Math.fabsf(f) > 0.001f)
-            {
-                float t1 = (e + aabb_min.y * l) / f;
-                float t2 = (e + aabb_max.y * l) / f;
-
-                if (t1 > t2)
-                {
-                    float w = t1;
-                    t1 = t2;
-                    t2 = w;
-                }
-
-                if (t2 < tMax)
-                    tMax = t2;
-                if (t1 > tMin)
-                    tMin = t1;
-
-                if (tMax < tMin)
-                    return -1;
-
-            }
-            else
-            {
-                if (-e + aabb_min.y > 0.0f || -e + aabb_max.y < 0.0f)
-                    return -1;
-            }
-        }
-
-        // Test intersection with the 2 planes perpendicular to the OBB's Z axis
-        // Exactly the same thing as above.
-        {
-            Vec3 zaxis = Vec3(model_matrix[8], model_matrix[9], model_matrix[10]);
-            float e = zaxis.dot(delta);
-            float f = ray_direction.dot(zaxis);
-            float l = zaxis.length();
-            l *= l;
-
-            if (Math.fabsf(f) > 0.001f)
-            {
-                float t1 = (e + aabb_min.z * l) / f;
-                float t2 = (e + aabb_max.z * l) / f;
-
-                if (t1 > t2)
-                {
-                    float w = t1;
-                    t1 = t2;
-                    t2 = w;
-                }
-
-                if (t2 < tMax)
-                    tMax = t2;
-                if (t1 > tMin)
-                    tMin = t1;
-
-                if (tMax < tMin)
-                    return -1;
-
-            }
-            else
-            {
-                if (-e + aabb_min.z > 0.0f || -e + aabb_max.z < 0.0f)
-                    return -1;
-            }
+            if (t2 < tMax) tMax = t2;
+            if (t1 > tMin) tMin = t1;
+            if (tMax < tMin) return -1;
         }
 
         return tMin;

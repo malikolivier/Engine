@@ -9,7 +9,7 @@ public class Camera
 
     public Camera()
     {
-        focal_length = 1;
+        view_angle = 90;
         view_transform = new CameraTransform();
     }
 
@@ -73,5 +73,5 @@ public class Camera
         }
     }
 
-    public float focal_length { get; set; }
+    public float view_angle { get; set; }
 }

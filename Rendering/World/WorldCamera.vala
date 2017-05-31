@@ -1,47 +1,50 @@
-public class WorldCamera : WorldObject
+namespace Engine
 {
-	public WorldCamera()
-	{
-        camera = new Camera();
-	}
-    
-    protected override void add_to_scene(RenderScene3D scene)
-    {   
-        camera.position = transform.position;
-
-        Vec3 rot = transform.rotation.to_euler();
-        camera.roll = rot.x;
-        camera.pitch = rot.y;
-        camera.yaw = rot.z;
-    }
-
-    public Camera camera { get; private set; }
-
-	public float focal_length
+    public class WorldCamera : WorldObject
     {
-        get { return camera.focal_length; }
-        set { camera.focal_length = value; }
-    }
-}
+        public WorldCamera()
+        {
+            camera = new Camera();
+        }
+        
+        protected override void do_process(DeltaArgs args)
+        {   
+            camera.position = transform.position;
 
-public class TargetWorldCamera : WorldCamera
-{
-    public TargetWorldCamera(WorldObject viewing_target)
+            Vec3 rot = transform.rotation.to_euler();
+            camera.roll = rot.x;
+            camera.pitch = rot.y;
+            camera.yaw = rot.z;
+        }
+
+        public Camera camera { get; private set; }
+
+        public float view_angle
+        {
+            get { return camera.view_angle; }
+            set { camera.view_angle = value; }
+        }
+    }
+
+    public class TargetWorldCamera : WorldCamera
     {
-        this.viewing_target = viewing_target;
-    }
-    
-    protected override void add_to_scene(RenderScene3D scene)
-    {
-        camera.position = transform.get_full_matrix().get_position();
-        camera.roll = roll;
+        public TargetWorldCamera(WorldObject viewing_target)
+        {
+            this.viewing_target = viewing_target;
+        }
+        
+        protected override void do_process(DeltaArgs args)
+        {
+            camera.position = transform.get_full_matrix().get_position();
+            camera.roll = roll;
 
-        Vec3 target_pos = viewing_target.transform.get_full_matrix().get_position();
-        Vec3 dir = target_pos.minus(camera.position).normalize();
-        camera.pitch = (float)(Math.asin(dir.y) / Math.PI);
-        camera.yaw = (float)(Math.atan2f(-dir.x, -dir.z) / Math.PI);
-    }
+            Vec3 target_pos = viewing_target.transform.get_full_matrix().get_position();
+            Vec3 dir = target_pos.minus(camera.position).normalize();
+            camera.pitch = (float)(Math.asin(dir.y) / Math.PI);
+            camera.yaw = (float)(Math.atan2f(-dir.x, -dir.z) / Math.PI);
+        }
 
-    public float roll { get; set; }
-    public WorldObject viewing_target { get; set; }
+        public float roll { get; set; }
+        public WorldObject viewing_target { get; set; }
+    }
 }

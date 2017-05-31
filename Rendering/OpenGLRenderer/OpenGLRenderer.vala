@@ -100,16 +100,24 @@ public class OpenGLRenderer : RenderTarget
     {
         OpenGLShaderProgram3D program = program_3D;
 
-        Mat4 projection_matrix = get_projection_matrix(scene.focal_length, (float)scene.screen_size.width / scene.screen_size.height);
+        Mat4 projection_matrix = get_projection_matrix(scene.view_angle, Size2(scene.rect.width, scene.rect.height));
         Mat4 view_matrix = scene.view_matrix;
         Mat4 scene_matrix = scene.scene_matrix;
 
-        program.apply_scene(projection_matrix.mul_mat(scene_matrix), view_matrix, scene.lights);
+        program.apply_scene(scene_matrix.mul_mat(projection_matrix), view_matrix, scene.lights);
+
+        glEnable(GL_SCISSOR_TEST);
+        glScissor((int)Math.round(scene.rect.x),
+                    (int)Math.round(scene.rect.y),
+                    (int)Math.round(scene.rect.width),
+                    (int)Math.round(scene.rect.height));
 
         int last_texture_handle = -1;
         int last_array_handle = -1;
 
         render_queue_3D(scene.queue, program, ref last_texture_handle, ref last_array_handle);
+
+        glDisable(GL_SCISSOR_TEST);
     }
 
     private void render_queue_3D(RenderQueue3D queue, OpenGLShaderProgram3D program, ref int last_texture_handle, ref int last_array_handle)
@@ -322,11 +330,8 @@ public class OpenGLRenderer : RenderTarget
         glBindTexture(GL_TEXTURE_2D, tex[0]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid[])resource.data);
 
-        /*if (!resource.tile)
-        {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        }*/
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

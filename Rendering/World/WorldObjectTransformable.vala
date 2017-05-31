@@ -1,15 +1,18 @@
-public class WorldObjectTransformable : WorldObject
+namespace Engine
 {
-	private Transformable3D object;
-
-	public WorldObjectTransformable(Transformable3D object)
+	public class WorldObjectTransformable : WorldObject
 	{
-		this.object = object;
-		object.transform = transform;
-	}
+		private Transformable3D object;
 
-	protected override void add_to_scene(RenderScene3D scene)
-	{
-		scene.add_object(object);
+		public WorldObjectTransformable(Transformable3D object)
+		{
+			this.object = object;
+			object.transform = transform;
+		}
+
+		protected override void add_to_scene(RenderScene3D scene)
+		{
+			scene.add_object(object);
+		}
 	}
 }

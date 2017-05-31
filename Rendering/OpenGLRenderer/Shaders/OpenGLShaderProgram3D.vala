@@ -43,8 +43,8 @@ public class OpenGLShaderProgram3D
         string vert = builder.create_vertex_shader();
         string frag = builder.create_fragment_shader();
 
-        FileLoader.save("vert.shader", FileLoader.split_string(vert));
-        FileLoader.save("frag.shader", FileLoader.split_string(frag));
+        //FileLoader.save("vert.shader", FileLoader.split_string(vert));
+        //FileLoader.save("frag.shader", FileLoader.split_string(frag));
 
         vertex_shader = new OpenGLShader(FileLoader.split_string(vert, true), OpenGLShader.ShaderType.VERTEX_SHADER);
         fragment_shader = new OpenGLShader(FileLoader.split_string(frag, true), OpenGLShader.ShaderType.FRAGMENT_SHADER);
