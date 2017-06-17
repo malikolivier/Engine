@@ -9,7 +9,7 @@ public class MainView : Container
     public void start_render(RenderState state)
     {
         RenderScene2D scene = new RenderScene2D(parent_window.size, rect);
-        render(state, scene);
+        scene = render(state, scene);
         state.add_scene(scene);
     }
 

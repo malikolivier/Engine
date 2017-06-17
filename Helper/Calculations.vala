@@ -71,7 +71,7 @@ public class Calculations
         return p.plus(origin);
     }
 
-    public static Ray get_ray(Mat4 projection_matrix, Mat4 view_matrix, Vec2i point, Size2 size)
+    public static Ray get_ray(Mat4 projection_matrix, Mat4 view_matrix, Vec2 point, Size2 size)
     {
         float x = point.x / size.width  * 2 - 1;
         float y = point.y / size.height * 2 - 1;

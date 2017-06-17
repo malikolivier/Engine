@@ -18,8 +18,8 @@ public class RenderScene3D : RenderScene
 
         Vec3 scene_translation = Vec3
         (
-            (rect.x + rect.width ) / screen_size.width  - 1,
-            (rect.y + rect.height) / screen_size.height - 1,
+            (rect.x * 2 + rect.width ) / screen_size.width  - 1,
+            (rect.y * 2 + rect.height) / screen_size.height - 1,
             0
         );
         Vec3 scene_scale = Vec3
@@ -47,6 +47,7 @@ public class RenderScene3D : RenderScene
     {
         view_matrix = camera.get_view_transform().get_full_matrix();
         view_angle = camera.view_angle;
+        camera_position = camera.position;
     }
 
     private void arrange_transformable(Transformable3D obj)
@@ -58,14 +59,31 @@ public class RenderScene3D : RenderScene
             arrange_object(obj as RenderObject3D);
     }
 
-    // TODO: Add shader sorting
     private void arrange_object(RenderObject3D obj)
+    {
+        foreach (RenderQueue3D sub in queue.sub_queues)
+        {
+            if (sub.reference_resource.equals(obj.material))
+            {
+                arrange_object_model(obj, sub);
+                return;
+            }
+        }
+
+        RenderQueue3D sub_queue = new RenderQueue3D();
+        sub_queue.reference_resource = obj.material;
+        queue.sub_queues.add(sub_queue);
+
+        arrange_object_model(obj, sub_queue);
+    }
+
+    private void arrange_object_model(RenderObject3D obj, RenderQueue3D queue)
     {
         foreach (RenderQueue3D sub in queue.sub_queues)
         {
             if (sub.reference_resource.equals(obj.model))
             {
-                arrange_object_texture(obj, sub);
+                arrange_object_texture(obj, sub, 0);
                 return;
             }
         }
@@ -74,41 +92,33 @@ public class RenderScene3D : RenderScene
         sub_queue.reference_resource = obj.model;
         queue.sub_queues.add(sub_queue);
 
-        arrange_object_texture(obj, sub_queue);
+        arrange_object_texture(obj, sub_queue, 0);
     }
 
-    private void arrange_object_texture(RenderObject3D obj, RenderQueue3D queue)
+    private void arrange_object_texture(RenderObject3D obj, RenderQueue3D queue, int texture)
     {
-        if (obj is RenderLabel3D)
+        if (obj.material.textures.length <= texture || obj is RenderLabel3D)
         {
             queue.objects.add(obj);
             return;
         }
 
-        RenderBody3D body = obj as RenderBody3D;
+        RenderTexture tex = obj.material.textures[texture];
 
         foreach (RenderQueue3D sub in queue.sub_queues)
         {
-            if (body.texture == null)
+            if (tex.equals(sub.reference_resource))
             {
-                if (sub.reference_resource == null)
-                {
-                    sub.objects.add(body);
-                    return;
-                }
-            }
-            else if (body.texture.equals(sub.reference_resource))
-            {
-                sub.objects.add(body);
+                arrange_object_texture(obj, sub, texture + 1);
                 return;
             }
         }
 
         RenderQueue3D sub_queue = new RenderQueue3D();
-        sub_queue.reference_resource = body.texture;
+        sub_queue.reference_resource = tex;
         queue.sub_queues.add(sub_queue);
 
-        sub_queue.objects.add(body);
+        arrange_object_texture(obj, sub_queue, texture + 1);
     }
 
     public RenderQueue3D queue { get; private set; }
@@ -116,8 +126,11 @@ public class RenderScene3D : RenderScene
     public Mat4 scene_matrix { get; private set; }
     public Mat4 view_matrix { get; private set; }
     public float view_angle { get; private set; }
+    public Vec3 camera_position { get; private set; }
     public Rectangle rect { get; private set; }
     public Size2i screen_size { get; private set; }
+    public bool scissor { get; set; }
+    public Rectangle scissor_box { get; set; }
 }
 
 public class RenderQueue3D

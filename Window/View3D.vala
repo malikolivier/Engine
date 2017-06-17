@@ -4,6 +4,8 @@ namespace Engine
     {
         public View3D()
         {
+            reset_depth = true;
+
             world = new World(this);
             world_scale_width = 1;
         }
@@ -11,6 +13,9 @@ namespace Engine
         protected override void do_render(RenderState state, RenderScene2D scene_2d)
         {
             RenderScene3D scene = new RenderScene3D(state.copy_state, state.screen_size, world_scale_width, rect);
+            scene.scissor = scissor;
+            scene.scissor_box = scissor_box;
+            
             world.add_to_scene(scene);
             state.add_scene(scene);
         }

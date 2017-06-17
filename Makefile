@@ -7,6 +7,7 @@ DIRS  = \
 	Rendering/*.vala \
 	Rendering/OpenGLRenderer/*.vala \
 	Rendering/OpenGLRenderer/Shaders/*.vala \
+	Rendering/Resources/*.vala \
 	Rendering/World/*.vala \
 	Window/*.vala \
 	Window/Controls/*.vala

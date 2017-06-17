@@ -77,15 +77,26 @@ public abstract class Container
         do_process(delta);
     }
 
-    protected virtual void render(RenderState state, RenderScene2D scene)
+    protected RenderScene2D render(RenderState state, RenderScene2D scene)
     {
         if (!visible)
-            return;
+            return scene;
+        
+        RenderScene2D s = scene;
+        
+        // Says whether we need to reset our scene depth (which is the case after 3D scenes)
+        if (reset_depth)
+        {
+            state.add_scene(s);
+            s = new RenderScene2D(state.screen_size, rect);
+        }
 
-        do_render(state, scene);
+        do_render(state, s);
 
         for (int i = 0; i < children.size; i++)
-            children[i].render(state, scene);
+            s = children[i].render(state, s);
+        
+        return s;
     }
 
     public void mouse_event(MouseEventArgs mouse)
@@ -212,13 +223,14 @@ public abstract class Container
     protected virtual void added() {}
     protected virtual void removed() {}
     protected virtual void resized() {}
-    protected virtual void do_render(RenderState state, RenderScene2D scene) {}
+    protected virtual void do_render(RenderState state, RenderScene2D scene) { }
     protected virtual void do_process(DeltaArgs delta) {}
     protected virtual void do_mouse_event(MouseEventArgs mouse) {}
     protected virtual void do_mouse_move(MouseMoveArgs mouse) {}
     protected virtual void do_key_press(KeyArgs key) {}
     protected virtual void do_text_input(TextInputArgs text) {}
     protected virtual void do_text_edit(TextEditArgs text) {}
+    protected bool reset_depth = false;
 
     protected ResourceStore store { get { return parent_window.store; } }
 

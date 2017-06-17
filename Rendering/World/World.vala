@@ -70,9 +70,11 @@ namespace Engine
 		{
 			WorldObject? prev = hovered_object;
 
-			if (do_picking && active_camera != null && !mouse.handled && parent.rect.contains_vec2i(mouse.position))
+			if (do_picking && active_camera != null && !mouse.handled && parent.rect.contains_vec2i(mouse.position)
+			&& (!parent.scissor || parent.scissor_box.contains_vec2i(mouse.position)))
 			{
-				Ray ray = Calculations.get_ray(projection_matrix, view_matrix, mouse.position, parent.size);
+				Vec2 pos = Vec2(mouse.position.x - parent.rect.x, mouse.position.y - parent.rect.y);
+				Ray ray = Calculations.get_ray(projection_matrix, view_matrix, pos, parent.size);
 				PickingResult pick = new PickingResult(ray);
 				world_transform.get_picking(pick);
 

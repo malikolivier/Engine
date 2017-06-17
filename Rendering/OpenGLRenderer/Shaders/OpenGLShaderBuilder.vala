@@ -459,6 +459,7 @@ public abstract class OpenGLShaderBuilder
     public OpenGLShaderBuilder(int version = 120)
     {
         this.version = version;
+        uniforms = new ArrayList<OpenGLShaderUniform>();
     }
 
     protected OpenGLShaderDependencyTree vertex_tree = new OpenGLShaderDependencyTree();
@@ -466,16 +467,29 @@ public abstract class OpenGLShaderBuilder
     protected OpenGLShaderFunction vertex_main = new OpenGLShaderFunction("main", OpenGLShaderPrimitiveType.VOID);
     protected OpenGLShaderFunction fragment_main = new OpenGLShaderFunction("main", OpenGLShaderPrimitiveType.VOID);
 
+    private void add_uniforms(OpenGLShaderUnit unit)
+    {
+        if (unit is OpenGLShaderUniform && !uniforms.contains(unit as OpenGLShaderUniform))
+            uniforms.add(unit as OpenGLShaderUniform);
+
+        foreach (OpenGLShaderUnit u in unit.dependencies)
+            add_uniforms(u);
+    }
+
     protected void add_vertex_block(OpenGLShaderCodeBlock block)
     {
         vertex_tree.add(block);
         vertex_main.add_code(block);
+
+        add_uniforms(block);
     }
 
     protected void add_fragment_block(OpenGLShaderCodeBlock block)
     {
         fragment_tree.add(block);
         fragment_main.add_code(block);
+        
+        add_uniforms(block);
     }
 
     private static string write_shader
@@ -501,11 +515,15 @@ public abstract class OpenGLShaderBuilder
 
     public string create_vertex_shader()
     {
+        add_uniforms(vertex_main);
         return write_shader(version, vertex_tree, vertex_main);
     }
 
     public string create_fragment_shader()
     {
+        add_uniforms(fragment_main);
         return write_shader(version, fragment_tree, fragment_main);
     }
+
+    public ArrayList<OpenGLShaderUniform> uniforms { get; private set; }
 }

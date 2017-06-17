@@ -28,44 +28,43 @@ public class ResourceStore
         if (data == null)
             return null;
 
-        ArrayList<RenderBody3D> objects = new ArrayList<RenderBody3D>();
+        ArrayList<RenderObject3D> objects = new ArrayList<RenderObject3D>();
         foreach (ModelData model in data.models)
         {
             RenderTexture? texture = null;
             if (do_load_texture)
                 texture = load_texture(filename);
 
-            RenderMaterial? mat = null;
+            MaterialData? mat = null;
 
             if (model.material_name != null)
             {
-                foreach (MaterialData material in data.materials)
+                foreach (MaterialData m in data.materials)
                 {
-                    if (material.name == model.material_name)
+                    if (m.name == model.material_name)
                     {
-                        mat = new RenderMaterial();
+                        /*mat = new MaterialProperties();
                         mat.ambient_color = Color(material.ambient_color.x, material.ambient_color.y, material.ambient_color.z, 1);
                         mat.diffuse_color = Color(material.diffuse_color.x, material.diffuse_color.y, material.diffuse_color.z, 1);
                         mat.specular_color = Color(material.specular_color.x, material.specular_color.y, material.specular_color.z, 1);
                         mat.specular_exponent = material.specular_exponent;
-                        mat.alpha = material.alpha;
+                        mat.alpha = material.alpha;*/
+                        mat = m;
                         break;
                     }
                 }
             }
 
-            if (mat == null)
-                mat = new RenderMaterial();
+            RenderMaterial material = create_standard_material(mat);
+            material.textures[0] = texture;
 
             InputResourceModel mod = new InputResourceModel(model.points);
             var handle = renderer.load_model(mod);
 
             RenderModel m = new RenderModel(handle, model.name, model.size);
+            RenderObject3D obj = new RenderObject3D(m, material);
 
-            RenderBody3D body = new RenderBody3D(m, mat);
-            body.texture = texture;
-
-            objects.add(body);
+            objects.add(obj);
         }
 
         RenderGeometry3D geometry = new RenderGeometry3D.with_objects(objects);
@@ -74,13 +73,13 @@ public class ResourceStore
         return geometry;
     }
 
-    public RenderBody3D? load_body_3D(string filename, string modelname)
+    public RenderObject3D? load_object_3D(string filename, string modelname)
     {
         RenderGeometry3D geometry = load_geometry_3D(filename, true);
 
         foreach (Transformable3D o in geometry.geometry)
         {
-            RenderBody3D obj = (RenderBody3D)o;
+            RenderObject3D obj = (RenderObject3D)o;
             if (obj.model.name == modelname)
                 return obj;
         }
@@ -104,7 +103,7 @@ public class ResourceStore
 
         foreach (Transformable3D o in geometry.geometry)
         {
-            RenderBody3D obj = (RenderBody3D)o;
+            RenderObject3D obj = (RenderObject3D)o;
             if (obj.model.name == modelname)
                 return obj.model;
         }
@@ -146,7 +145,12 @@ public class ResourceStore
     {
         var handle = renderer.load_label();
         LabelResourceReference reference = new LabelResourceReference(handle, this);
-        RenderLabel3D label = new RenderLabel3D(reference, create_plane().model);
+        MaterialSpecification spec = get_standard_material_spec();
+        spec.ambient_blend_type = TextureBlendType.COLOR;
+        spec.diffuse_blend_type = TextureBlendType.COLOR;
+        spec.texture_map = true;
+
+        RenderLabel3D label = new RenderLabel3D(reference, create_plane().model, load_material(spec));
 
         return label;
     }
@@ -156,7 +160,46 @@ public class ResourceStore
         renderer.unload_label(reference.handle);
     }
 
-    private void cache_object(string name, CacheObjectType type, IResource obj)
+    public MaterialSpecification get_standard_material_spec(MaterialData? data = null)
+    {
+        return new MaterialSpecification()
+        {
+            textures = 1,
+            lighting_calculation = LightingCalculationType.FRAGMENT,
+            ambient_strength = 0.1f,
+            diffuse_strength = 0.9f,
+            specular_strength = 1.0f,
+            specular_exponent = 10,
+            ambient_blend_type = TextureBlendType.ALPHA,
+            diffuse_blend_type = TextureBlendType.ALPHA,
+            specular_blend_type = TextureBlendType.COLOR,
+            
+            specular_color = UniformType.STATIC,
+            static_specular_color = Color.white()
+        };
+    }
+
+    public RenderMaterial create_standard_material(MaterialData? data = null)
+    {
+        return load_material(get_standard_material_spec(data));
+    }
+
+    public RenderMaterial load_material(MaterialSpecification spec)
+    {
+        foreach (ResourceCacheObject obj in cache)
+            if (obj.obj_type == CacheObjectType.MATERIAL && (obj.obj as RenderMaterial).spec.equals(spec))
+                return (obj.obj as RenderMaterial).copy();
+
+        InputResourceMaterial mat = new InputResourceMaterial(spec.copy());
+        var handle = renderer.load_material(mat);
+
+        RenderMaterial material = new RenderMaterial(handle, spec, mat.uniforms);
+        cache_object(null, CacheObjectType.MATERIAL, material);
+
+        return material;
+    }
+
+    private void cache_object(string? name, CacheObjectType type, IResource obj)
     {
         cache.add(new ResourceCacheObject(name, type, obj));
     }
@@ -184,12 +227,13 @@ public class ResourceStore
         return label_loader.generate_label_bitmap(label.font_type, label.font_size, label.text);
     }
 
-    public RenderBody3D? create_plane()
+    public RenderObject3D? create_plane(RenderMaterial? material = null)
     {
         ModelData plane = BasicGeometry.get_plane();
         RenderModel model = load_static_model(plane, "plane");
+        RenderMaterial mat = material == null ? create_standard_material() : material;
 
-        return new RenderBody3D(model, new RenderMaterial());
+        return new RenderObject3D(model, mat);
     }
 
     private RenderModel? load_static_model(ModelData data, string name)
@@ -208,26 +252,20 @@ public class ResourceStore
 
     public AudioPlayer audio_player { get { return audio; } }
 
-    /*public abstract RenderModel? load_model_dir(string dir, string name, bool center);
-    public abstract RenderTexture? load_texture_dir(string dir, string name, bool tile);
-    public abstract RenderLabel2D? create_label();
-    public abstract RenderLabel3D? create_label_3D();
-    public abstract void delete_label(LabelResourceReference reference);*/
-
     private const string DATA_DIR = "./Data/";
     protected const string MODEL_DIR = DATA_DIR + "Models/";
     protected const string TEXTURE_DIR = DATA_DIR + "Textures/";
 
     private class ResourceCacheObject
     {
-        public ResourceCacheObject(string name, CacheObjectType type, IResource obj)
+        public ResourceCacheObject(string? name, CacheObjectType type, IResource obj)
         {
             this.name = name;
             this.obj_type = type;
             this.obj = obj;
         }
 
-        public string name { get; private set; }
+        public string? name { get; private set; }
         public CacheObjectType obj_type { get; private set; }
         public IResource obj { get; private set; }
     }
@@ -236,7 +274,7 @@ public class ResourceStore
     {
         MODEL,
         TEXTURE,
-        MATERIAL, // Not used at all
+        MATERIAL,
         GEOMETRY
     }
 }
@@ -261,6 +299,17 @@ public class InputResourceTexture
 
     public uchar[] data { get; private set; }
     public Size2i size { get; private set; }
+}
+
+public class InputResourceMaterial
+{
+    public InputResourceMaterial(MaterialSpecification spec)
+    {
+        this.spec = spec;
+    }
+
+    public MaterialSpecification spec { get; private set; }
+    public ShaderUniform[]? uniforms { get; set; }
 }
 
 public class LabelResourceReference
@@ -293,45 +342,4 @@ public class LabelResourceReference
 
     public ILabelResourceHandle? handle { get; private set; }
     public bool deleted { get; private set; }
-}
-
-public class RenderModel : IResource
-{
-    public RenderModel(IModelResourceHandle handle, string name, Vec3 size)
-    {
-        this.handle = handle;
-        this.name = name;
-        this.size = size;
-    }
-
-    public override bool equals(IResource? other)
-    {
-        return other != null && handle == (other as RenderModel).handle;
-    }
-
-    public IModelResourceHandle handle { get; private set; }
-    public string name { get; private set; }
-    public Vec3 size { get; private set; }
-}
-
-public class RenderTexture : IResource
-{
-    public RenderTexture(ITextureResourceHandle handle, Size2i size)
-    {
-        this.handle = handle;
-        this.size = size;
-    }
-
-    public override bool equals(IResource? other)
-    {
-        return other != null && handle == (other as RenderTexture).handle;
-    }
-
-    public ITextureResourceHandle handle { get; private set; }
-    public Size2i size { get; private set; }
-}
-
-public abstract class IResource
-{
-    public virtual bool equals(IResource? other) { return false; }
 }

@@ -6,35 +6,32 @@ public abstract class RenderTarget
     private RenderState? buffer_state = null;
     private bool running = false;
     private StepTimer timer;
-    private Mutex state_mutex = Mutex();
-    private Mutex prop_mutex = Mutex();
+    private EngineMutex state_mutex;
 
     private MainView debug_main_view;
     private DebugView debug_view;
     private DebugInfo? debug_info;
-    private int debug_external_fps;
-    private int debug_internal_fps;
-    private int debug_new_external_fps;
-    private int debug_new_internal_fps;
+    private int debug_external_fps = 1;
+    private int debug_internal_fps = 1;
+    private int debug_new_external_fps = 1;
+    private int debug_new_internal_fps = 1;
 
-    private Mutex resource_mutex = Mutex();
+    private EngineMutex resource_mutex;
     private ArrayList<IModelResourceHandle> to_load_models = new ArrayList<IModelResourceHandle>();
     private ArrayList<ITextureResourceHandle> to_load_textures = new ArrayList<ITextureResourceHandle>();
+    private ArrayList<IMaterialResourceHandle> to_load_materials = new ArrayList<IMaterialResourceHandle>();
 
     private ArrayList<IModelResourceHandle> to_unload_models = new ArrayList<IModelResourceHandle>();
     private ArrayList<ITextureResourceHandle> to_unload_textures = new ArrayList<ITextureResourceHandle>();
+    private ArrayList<IMaterialResourceHandle> to_unload_materials = new ArrayList<IMaterialResourceHandle>();
     private ArrayList<ILabelResourceHandle> to_unload_labels = new ArrayList<ILabelResourceHandle>();
 
     private ArrayList<IModelResourceHandle> handles_models = new ArrayList<IModelResourceHandle>();
     private ArrayList<ITextureResourceHandle> handles_textures = new ArrayList<ITextureResourceHandle>();
+    private ArrayList<IMaterialResourceHandle> handles_materials = new ArrayList<IMaterialResourceHandle>();
     private ArrayList<ILabelResourceHandle> handles_labels = new ArrayList<ILabelResourceHandle>();
 
     private bool saved_v_sync = false;
-    private string saved_shader_3D;
-    private string saved_shader_2D;
-
-    private string _shader_3D;
-    private string _shader_2D;
 
     protected IWindowTarget window;
     protected ResourceStore store;
@@ -46,6 +43,17 @@ public abstract class RenderTarget
         this.debug = debug;
         anisotropic_filtering = true;
         v_sync = saved_v_sync;
+
+        if (multithread_rendering)
+        {
+            state_mutex = new RegularEngineMutex();
+            resource_mutex = new RegularEngineMutex();
+        }
+        else
+        {
+            state_mutex = new EngineMutex();
+            resource_mutex = new EngineMutex();
+        }
     }
 
     ~RenderTarget()
@@ -130,6 +138,16 @@ public abstract class RenderTarget
         return ret;
     }
 
+    public IMaterialResourceHandle load_material(InputResourceMaterial material)
+    {
+        resource_mutex.lock();
+        IMaterialResourceHandle ret = init_material(material);
+        to_load_materials.add(ret);
+        resource_mutex.unlock();
+
+        return ret;
+    }
+
     public ILabelResourceHandle load_label()
     {
         resource_mutex.lock();
@@ -154,6 +172,13 @@ public abstract class RenderTarget
         resource_mutex.unlock();
     }
 
+    public void unload_material(IMaterialResourceHandle material)
+    {
+        resource_mutex.lock();
+        to_unload_materials.add(material);
+        resource_mutex.unlock();
+    }
+
     public void unload_label(ILabelResourceHandle label)
     {
         resource_mutex.lock();
@@ -163,6 +188,7 @@ public abstract class RenderTarget
 
     private void render_cycle(RenderState state)
     {
+        window.pump_events();
         debug_new_external_fps++;
 
         if (timer.elapsed())
@@ -230,6 +256,15 @@ public abstract class RenderTarget
             do_load_texture(texture);
             resource_mutex.lock();
         }
+
+        while (to_load_materials.size != 0)
+        {
+            IMaterialResourceHandle material = to_load_materials.remove_at(0);
+            handles_materials.add(material);
+            resource_mutex.unlock();
+            do_load_material(material);
+            resource_mutex.lock();
+        }
         resource_mutex.unlock();
     }
 
@@ -241,22 +276,6 @@ public abstract class RenderTarget
         {
             saved_v_sync = new_v_sync;
             change_v_sync(saved_v_sync);
-        }
-
-        string new_shader_3D = shader_3D;
-
-        if (new_shader_3D != saved_shader_3D)
-        {
-            saved_shader_3D = new_shader_3D;
-            change_shader_3D(saved_shader_3D);
-        }
-
-        string new_shader_2D = shader_2D;
-
-        if (new_shader_2D != saved_shader_2D)
-        {
-            saved_shader_2D = new_shader_2D;
-            change_shader_2D(saved_shader_2D);
         }
     }
 
@@ -322,7 +341,8 @@ public abstract class RenderTarget
                     continue;
 
                 LabelBitmap bitmap = store.generate_label_bitmap_3D(label);
-                do_load_label(handle, bitmap);
+                ITextureResourceHandle tex = do_load_label(handle, bitmap);
+                label.material.textures[0] = new RenderTexture(tex, bitmap.size);
 
                 handle.created = true;
                 handle.font_type = label.font_type;
@@ -330,6 +350,14 @@ public abstract class RenderTarget
                 handle.text = label.text;
             }
         }
+    }
+
+    private int get_queue_object_count(RenderQueue3D queue)
+    {
+        int total = queue.objects.size;
+        foreach (RenderQueue3D sub in queue.sub_queues)
+            total += get_queue_object_count(sub);
+        return total;
     }
 
     private void add_debug_info(RenderState state, RenderWindow window)
@@ -357,9 +385,12 @@ public abstract class RenderTarget
         string[] strings =
         {
             "FPS: " + debug_external_fps.to_string(),
+            "Frame time: " + (1000.0f / debug_external_fps).to_string() + "ms",
             "CPS: " + debug_internal_fps.to_string(),
+            "Cycle time: " + (1000.0f / debug_internal_fps).to_string() + "ms",
             "Model handles: " + handles_models.size.to_string(),
             "Texture handles: " + handles_textures.size.to_string(),
+            "Material handles: " + handles_materials.size.to_string(),
             "Label handles: " + handles_labels.size.to_string()
         };
 
@@ -367,6 +398,14 @@ public abstract class RenderTarget
         info.add_strings(strings);
         
         info.add_strings(get_debug_strings());
+
+        foreach (RenderScene scene in state.scenes)
+        {
+            if (scene is RenderScene2D)
+                info.add_string("Scene 2D (" + (scene as RenderScene2D).objects.size.to_string() + ")");
+            else if (scene is RenderScene3D)
+                info.add_string("Scene 3D (" + get_queue_object_count((scene as RenderScene3D).queue).to_string() + ")");
+        }
 
         state_mutex.lock();
         debug_info = info;
@@ -403,26 +442,27 @@ public abstract class RenderTarget
 
     protected abstract void do_load_model(IModelResourceHandle handle);
     protected abstract void do_load_texture(ITextureResourceHandle handle);
-    protected abstract void do_load_label(ILabelResourceHandle handle, LabelBitmap bitmap);
+    protected abstract void do_load_material(IMaterialResourceHandle handle);
+    protected abstract ITextureResourceHandle do_load_label(ILabelResourceHandle handle, LabelBitmap bitmap);
 
     protected abstract void do_unload_model(IModelResourceHandle handle);
     protected abstract void do_unload_texture(ITextureResourceHandle handle);
+    protected abstract void do_unload_material(IMaterialResourceHandle handle);
     protected abstract void do_unload_label(ILabelResourceHandle handle);
 
     protected abstract IModelResourceHandle init_model(InputResourceModel model);
     protected abstract ITextureResourceHandle init_texture(InputResourceTexture texture);
+    protected abstract IMaterialResourceHandle init_material(InputResourceMaterial material);
     protected abstract LabelResourceHandle init_label();
 
     protected abstract void change_v_sync(bool v_sync);
-    protected abstract bool change_shader_3D(string name);
-    protected abstract bool change_shader_2D(string name);
     protected virtual string[] get_debug_strings() { return new string[0]; }
     protected virtual void do_secondly()
     {
         debug_external_fps = debug_new_external_fps;
         debug_internal_fps = debug_new_internal_fps;
-        debug_new_external_fps = 0;
-        debug_new_internal_fps = 0;
+        debug_new_external_fps = 1;
+        debug_new_internal_fps = 1;
     }
 
     public ResourceStore resource_store { get { return store; } }
@@ -430,42 +470,6 @@ public abstract class RenderTarget
     public bool anisotropic_filtering { get; set; }
     public bool multithread_rendering { get; private set; }
     public bool debug { get; private set; }
-
-    public string shader_3D
-    {
-        owned get
-        {
-            prop_mutex.lock();
-            string s = _shader_3D;
-            prop_mutex.unlock();
-            return s;
-        }
-
-        set
-        {
-            prop_mutex.lock();
-            _shader_3D = value;
-            prop_mutex.unlock();
-        }
-    }
-
-    public string shader_2D
-    {
-        owned get
-        {
-            prop_mutex.lock();
-            string s = _shader_2D;
-            prop_mutex.unlock();
-            return s;
-        }
-
-        set
-        {
-            prop_mutex.lock();
-            _shader_2D = value;
-            prop_mutex.unlock();
-        }
-    }
 
     protected abstract class LabelResourceHandle : ILabelResourceHandle, Object
     {

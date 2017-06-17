@@ -1,4 +1,4 @@
-public abstract class RenderObject3D : Transformable3D
+public class RenderObject3D : Transformable3D
 {
     public RenderObject3D(RenderModel model, RenderMaterial material)
     {
@@ -16,28 +16,19 @@ public abstract class RenderObject3D : Transformable3D
 
         return obj;
     }
+    
+    protected virtual RenderObject3D copy_object()
+    {
+        return new RenderObject3D(model, material.copy());
+    }
+
+    public virtual Transform get_full_transform()
+    {
+        return transform;
+    }
 
     public RenderModel model { get; set; }
     public RenderMaterial material { get; set; }
-    protected abstract RenderObject3D copy_object();
-}
-
-public class RenderBody3D : RenderObject3D
-{
-    public RenderBody3D(RenderModel model, RenderMaterial material)
-    {
-        base(model, material);
-    }
-
-    protected override RenderObject3D copy_object()
-    {
-        RenderBody3D obj = new RenderBody3D(model, material.copy());
-        obj.texture = texture;
-
-        return obj;
-    }
-
-    public RenderTexture? texture { get; set; }
 }
 
 public class RenderLabel3D : RenderObject3D
@@ -48,9 +39,9 @@ public class RenderLabel3D : RenderObject3D
     private bool _bold;
     private float _size = FONT_SIZE_MULTIPLIER;
 
-    public RenderLabel3D(LabelResourceReference reference, RenderModel model)
+    public RenderLabel3D(LabelResourceReference reference, RenderModel model, RenderMaterial material)
     {
-        base(model, new RenderMaterial());
+        base(model, material);
 
         this.reference = reference;
 
@@ -60,16 +51,11 @@ public class RenderLabel3D : RenderObject3D
         _bold = false;
 
         color = Color.white();
-        material.ambient_material_strength = 0;
-        material.specular_material_strength = 0;
-        material.ambient_color = Color.none();
-        material.diffuse_color = Color.none();
-        material.specular_color = Color.none();
     }
 
     protected override RenderObject3D copy_object()
     {
-        RenderLabel3D img = new RenderLabel3D(reference, model);
+        RenderLabel3D img = new RenderLabel3D(reference, model, material);
         img.material = material.copy();
         img.info = info;
         img._font_type = _font_type;
@@ -150,15 +136,15 @@ public class RenderLabel3D : RenderObject3D
 
     public Color color
     {
-        get { return Color(material.diffuse_color.r + 1, material.diffuse_color.g + 1, material.diffuse_color.b + 1, material.diffuse_color.a + 1); }
+        get { return Color(material.diffuse_color.r, material.diffuse_color.g, material.diffuse_color.b, material.diffuse_color.a); }
         set
         {
-            material.diffuse_color = Color(value.r - 1, value.g - 1, value.b - 1, value.a - 1);
+            material.diffuse_color = Color(value.r, value.g, value.b, value.a);
             material.ambient_color = material.diffuse_color;
         }
     }
 
-    public Transform get_label_transform()
+    public override Transform get_full_transform()
     {
         Transform t = transform.copy_full_parentless();
 

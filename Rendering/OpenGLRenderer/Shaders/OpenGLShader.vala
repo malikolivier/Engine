@@ -53,6 +53,11 @@ class OpenGLShader
         return true;
     }
 
+    public void delete()
+    {
+        glDeleteShader(handle);
+    }
+
     public uint handle { get; private set; }
 
     public enum ShaderType
