@@ -27,6 +27,7 @@ public class RenderObject3D : Transformable3D
         return transform;
     }
 
+    public Vec3 obb { get { return model.size; } }
     public RenderModel model { get; set; }
     public RenderMaterial material { get; set; }
 }
@@ -45,12 +46,14 @@ public class RenderLabel3D : RenderObject3D
 
         this.reference = reference;
 
+        // TODO: Abstractify font
         _font_type = "Noto Sans CJK JP";
         _font_size = 40;
         _text = "";
         _bold = false;
 
         color = Color.white();
+        update();
     }
 
     protected override RenderObject3D copy_object()
@@ -136,11 +139,11 @@ public class RenderLabel3D : RenderObject3D
 
     public Color color
     {
-        get { return Color(material.diffuse_color.r, material.diffuse_color.g, material.diffuse_color.b, material.diffuse_color.a); }
+        get { return material.diffuse_color; } //Color(material.diffuse_color.r, material.diffuse_color.g, material.diffuse_color.b, material.diffuse_color.a); }
         set
         {
-            material.diffuse_color = Color(value.r, value.g, value.b, value.a);
-            material.ambient_color = material.diffuse_color;
+            material.diffuse_color = value;//Color(value.r, value.g, value.b, value.a);
+            material.ambient_color = value;//material.diffuse_color;
         }
     }
 
@@ -149,14 +152,15 @@ public class RenderLabel3D : RenderObject3D
         Transform t = transform.copy_full_parentless();
 
         Vec3 s = font_sizing();
-        t.scale = Vec3(t.scale.x * s.x, t.scale.y * s.y, t.scale.z * s.z);
+        var mat = t.get_full_matrix();
+        mat = mat.mul_mat(Calculations.scale_matrix(s));
 
-        return t;
+        return new Transform.with_mat(mat);
     }
 
-    private Vec3 font_sizing()
+    public Vec3 font_sizing()
     {
-        return Vec3(info.size.width / font_size * FONT_SIZE_MULTIPLIER * _size, 1, info.size.height / font_size * FONT_SIZE_MULTIPLIER * _size);
+        return Vec3(info.size.width / font_size * _size, 1, info.size.height / font_size * _size);
     }
 
     public Vec3 end_size

@@ -8,7 +8,7 @@ public class LineControl : Control
         line = new RectangleControl();
     }
 
-    public override void added()
+    public override void pre_added()
     {
         add_child(line);
         resize_style = ResizeStyle.ABSOLUTE;

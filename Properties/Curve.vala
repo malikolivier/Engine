@@ -64,3 +64,18 @@ public class SmoothApproachCurve : Curve
         return (1 - mul) * x + (float)Math.pow(x, exp) * mul;
     }
 }
+
+public class SmoothDepartCurve : Curve
+{
+    private SmoothApproachCurve curve;
+
+    public SmoothDepartCurve()
+    {
+        curve = new SmoothApproachCurve();
+    }
+
+    public override float map(float x)
+    {
+        return 1 - curve.map(1 - x);
+    }
+}

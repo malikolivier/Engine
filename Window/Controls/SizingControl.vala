@@ -186,14 +186,14 @@ public class SizingControl : Container
         }
     }
 
-    class SizingContainer : Container
+    private class SizingContainer : Container
     {
         public SizingContainer(Container child)
         {
             this.child = child;
         }
 
-        public override void added()
+        public override void pre_added()
         {
             add_child(child);
         }

@@ -20,7 +20,7 @@ namespace Engine
             this.vertical = vertical;
         }
 
-        protected override void added()
+        protected override void pre_added()
         {
             RectangleControl background = new RectangleControl();
             add_child(background);
@@ -178,7 +178,7 @@ namespace Engine
 
             protected override void on_mouse_move(Vec2 position)
             {
-                if (mouse_down && position != last_position)
+                if (mouse_pressed && position != last_position)
                 {
                     last_position = position;
                     if (vertical)

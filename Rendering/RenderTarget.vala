@@ -434,7 +434,7 @@ public abstract class RenderTarget
         Vec4 v3 = {0,        0,              -z_plus / z_minus, -2 * z_mul / z_minus};
         Vec4 v4 = {0,        0,              -1,                 0                  };
 
-        return new Mat4.with_vecs(v1, v2, v3, v4);
+        return Mat4.new_with_vecs(v1, v2, v3, v4);
     }
 
     public abstract void render(RenderState state);

@@ -9,13 +9,13 @@ public class MainView : Container
     public void start_render(RenderState state)
     {
         RenderScene2D scene = new RenderScene2D(parent_window.size, rect);
-        scene = render(state, scene);
+        scene = do_render(state, scene);
         state.add_scene(scene);
     }
 
     public void start_process(DeltaArgs args)
     {
-        process(args);
+        do_process(args);
     }
 
     public void set_window(RenderWindow? window)

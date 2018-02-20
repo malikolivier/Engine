@@ -7,7 +7,7 @@ namespace Engine
             camera = new Camera();
         }
         
-        protected override void do_process(DeltaArgs args)
+        protected override void process(DeltaArgs args)
         {   
             camera.position = transform.position;
 
@@ -33,7 +33,7 @@ namespace Engine
             this.viewing_target = viewing_target;
         }
         
-        protected override void do_process(DeltaArgs args)
+        protected override void process(DeltaArgs args)
         {
             camera.position = transform.get_full_matrix().get_position();
             camera.roll = roll;

@@ -5,12 +5,15 @@ namespace Engine
         public View3D()
         {
             reset_depth = true;
-
-            world = new World(this);
             world_scale_width = 1;
         }
 
-        protected override void do_render(RenderState state, RenderScene2D scene_2d)
+        protected override void pre_added()
+        {
+            world = new World(this, store);
+        }
+
+        protected override void pre_render(RenderState state, RenderScene2D scene_2d)
         {
             RenderScene3D scene = new RenderScene3D(state.copy_state, state.screen_size, world_scale_width, rect);
             scene.scissor = scissor;
@@ -20,20 +23,17 @@ namespace Engine
             state.add_scene(scene);
         }
 
-        protected override void do_process(DeltaArgs args)
+        protected override void pre_process(DeltaArgs args)
         {
             world.process(args);
-            process_3d(args);
         }
-        
-        protected virtual void process_3d(DeltaArgs args) {}
 
-        protected override void do_mouse_event(MouseEventArgs mouse)
+        protected override void mouse_event(MouseEventArgs mouse)
         {
             world.mouse_event(mouse);
         }
 
-        protected override void do_mouse_move(MouseMoveArgs mouse)
+        protected override void mouse_move(MouseMoveArgs mouse)
         {
             world.mouse_move(mouse);
         }

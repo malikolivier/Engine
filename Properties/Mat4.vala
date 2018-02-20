@@ -1,5 +1,9 @@
-public class Mat4
+using Gee;
+
+public class Mat4// : Object
 {
+    //private static ArrayList<Mat4> unused = new ArrayList<Mat4>();
+
     private Vec4 v1;
     private Vec4 v2;
     private Vec4 v3;
@@ -7,39 +11,82 @@ public class Mat4
     
     // Caching for Optimization
     private Mat4? inverse_matrix;
-    private float[]? data;
-    private float[]? data_t;
+    private float data[16];
+    private float data_t[16];
+    private bool has_data;
+    private bool has_data_t;
 
-    public Mat4()
+    private Mat4()
     {
-        v1 = Vec4(1, 0, 0, 0);
-		v2 = Vec4(0, 1, 0, 0);
-        v3 = Vec4(0, 0, 1, 0);
-        v4 = Vec4(0, 0, 0, 1);
-        identity = true;
+        //add_toggle_ref(toggle_ref);
     }
 
-    public Mat4.with_array(float *a)
+    /*private void toggle_ref(Object object, bool is_last_ref)
     {
-        v1 = Vec4(a[ 0], a[ 1], a[ 2], a[ 3]);
-        v2 = Vec4(a[ 4], a[ 5], a[ 6], a[ 7]);
-        v3 = Vec4(a[ 8], a[ 9], a[10], a[11]);
-        v4 = Vec4(a[12], a[13], a[14], a[15]);
-        check_is_identity();
+        if (is_last_ref)
+        {
+            unused.add(this);
+            has_data = false;
+            has_data_t = false;
+            inverse_matrix = null;
+        }
+    }*/
+
+    private static Mat4 get_mat()
+    {
+        return new Mat4();
+        //(unused.size == 0) ? new Mat4() : unused.remove_at(0);
     }
 
-    public Mat4.with_vecs(Vec4 v1, Vec4 v2, Vec4 v3, Vec4 v4)
+    public static Mat4 get_new()
     {
-        this.v1 = v1;
-        this.v2 = v2;
-        this.v3 = v3;
-        this.v4 = v4;
-        check_is_identity();
+        Mat4 mat = get_mat();
+        mat.v1 = Vec4(1, 0, 0, 0);
+		mat.v2 = Vec4(0, 1, 0, 0);
+        mat.v3 = Vec4(0, 0, 1, 0);
+        mat.v4 = Vec4(0, 0, 0, 1);
+        mat.identity = true;
+
+        return mat;
     }
 
-    public Mat4.empty()
+    public static Mat4 new_with_array(float *a)
     {
-        identity = false;
+        Mat4 mat = get_mat();
+
+        mat.v1 = Vec4(a[ 0], a[ 1], a[ 2], a[ 3]);
+        mat.v2 = Vec4(a[ 4], a[ 5], a[ 6], a[ 7]);
+        mat.v3 = Vec4(a[ 8], a[ 9], a[10], a[11]);
+        mat.v4 = Vec4(a[12], a[13], a[14], a[15]);
+        mat.check_is_identity();
+
+        return mat;
+    }
+
+    public static Mat4 new_with_vecs(Vec4 v1, Vec4 v2, Vec4 v3, Vec4 v4)
+    {
+        Mat4 mat = get_mat();
+
+        mat.v1 = v1;
+        mat.v2 = v2;
+        mat.v3 = v3;
+        mat.v4 = v4;
+        mat.check_is_identity();
+
+        return mat;
+    }
+
+    public static Mat4 new_empty()
+    {
+        Mat4 mat = get_mat();
+
+        mat.v1 = {};
+        mat.v2 = {};
+        mat.v3 = {};
+        mat.v4 = {};
+        mat.identity = false;
+
+        return mat;
     }
 	
 	public bool equals(Mat4 other)
@@ -91,7 +138,7 @@ public class Mat4
         v[2] = v3;
         v[3] = v4;
 
-        return inverse_matrix = (gluInvertMatrix(mat, inv) ? new Mat4.with_array(inv) : new Mat4.empty());
+        return inverse_matrix = (gluInvertMatrix(mat, inv) ? Mat4.new_with_array(inv) : Mat4.new_empty());
     }
 
     public Mat4 transpose()
@@ -104,7 +151,7 @@ public class Mat4
         Vec4 v3 = col(2);
         Vec4 v4 = col(3);
 
-        return new Mat4.with_vecs(v1, v2, v3, v4);
+        return Mat4.new_with_vecs(v1, v2, v3, v4);
     }
 
     // this*mat
@@ -115,7 +162,7 @@ public class Mat4
         if (mat.identity)
             return this;
         if (inverse_matrix == mat || this == mat.inverse_matrix)
-            return new Mat4();
+            return get_new();
         
         Vec4 vec1 =
         {
@@ -149,7 +196,7 @@ public class Mat4
             v4.dot(mat.col(3))
         };
 
-        return new Mat4.with_vecs(vec1, vec2, vec3, vec4);
+        return Mat4.new_with_vecs(vec1, vec2, vec3, vec4);
     }
 
     public Vec4 mul_vec(Vec4 vec)
@@ -191,9 +238,6 @@ public class Mat4
     {
         return Vec3
         (
-            /*Vec3(v1.x, v2.x, v3.x).length(),
-            Vec3(v1.y, v2.y, v3.y).length(),
-            Vec3(v1.z, v2.z, v3.z).length()*/
             Vec3(v1.x, v1.y, v1.z).length(),
             Vec3(v2.x, v2.y, v2.z).length(),
             Vec3(v3.x, v3.y, v3.z).length()
@@ -202,52 +246,53 @@ public class Mat4
 
     public Quat get_rotation()
     {
-        float w = Math.sqrtf(Math.fmaxf(0, 1 + v1.x + v2.y + v3.z)) / 2;
-        float x = Math.sqrtf(Math.fmaxf(0, 1 + v1.x - v2.y - v3.z)) / 2;
-        float y = Math.sqrtf(Math.fmaxf(0, 1 - v1.x + v2.y - v3.z)) / 2;
-        float z = Math.sqrtf(Math.fmaxf(0, 1 - v1.x - v2.y + v3.z)) / 2;
+        Vec3 s = get_scale();
+        float v1x = v1.x / s.x, v2y = v2.y / s.y, v3z = v3.z / s.z;
+
+        float w = Math.sqrtf(Math.fmaxf(0, 1 + v1x + v2y + v3z)) / 2;
+        float x = Math.sqrtf(Math.fmaxf(0, 1 + v1x - v2y - v3z)) / 2;
+        float y = Math.sqrtf(Math.fmaxf(0, 1 - v1x + v2y - v3z)) / 2;
+        float z = Math.sqrtf(Math.fmaxf(0, 1 - v1x - v2y + v3z)) / 2;
         x *= Calculations.sign(x * (v3.y - v2.z));
         y *= Calculations.sign(y * (v1.z - v3.x));
         z *= Calculations.sign(z * (v2.x - v1.y));
 
-        return new Quat.vals(w, x, y, z);
+        return Quat.vals(w, x, y, z);
     }
 
-    public float[] get_data()
+    public new float[] get_data()
     {
-        if (data != null)
+        if (has_data)
             return data;
 
-        float[] d = new float[16];
-        Vec4 *v = (Vec4*)d;
+        Vec4 *v = (Vec4*)data;
         v[0] = v1;
         v[1] = v2;
         v[2] = v3;
         v[3] = v4;
 
-        data = d;
+        has_data = true;
 
-        return d;
+        return data;
     }
 
     public float[] get_transpose_data()
     {
-        if (data_t != null)
+        if (has_data_t)
             return data_t;
 
-        float[] d = new float[16];
-        Vec4 *v = (Vec4*)d;
+        Vec4 *v = (Vec4*)data_t;
         v[0] = col(0);
         v[1] = col(1);
         v[2] = col(2);
         v[3] = col(3);
 
-        data_t = d;
+        has_data_t = true;
 
-        return d;
+        return data_t;
     }
 
-    public float get(int i)
+    public new float get(int i)
     {
         Vec4 v = {};
         int a = i / 4;

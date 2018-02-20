@@ -81,7 +81,6 @@ namespace Engine
                 string name = builder.uniforms[i].name;
                 int handle = glGetUniformLocation(program, name);
                 uniforms[i].handle = handle;
-                print(name + ": " + handle.to_string());
             }
 
             if (spec.lighting_calculation != LightingCalculationType.NONE)
@@ -206,7 +205,7 @@ namespace Engine
                 int s = lights.size;
                 apply_uniform("light_count", &s, ApplyUniformType.INT);
 
-                for (int i = 0; i < lights.size; i++)
+                for (int i = 0; i < s && i < this.lights.length; i++)
                     this.lights[i].apply(lights[i].transform, lights[i].color, lights[i].intensity);
             }
         }

@@ -17,7 +17,7 @@ public class Camera
     {
         if (dirty_rotation)
         {
-            view_transform.rotation = new Quat.from_euler(yaw, pitch, 0).mul(new Quat.from_euler(0, 0, roll)); // Apply roll last
+            view_transform.rotation = Quat.from_euler(yaw, pitch, 0).mul(Quat.from_euler(0, 0, roll)); // Apply roll last
             dirty_rotation = false;
         }
 

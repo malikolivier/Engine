@@ -14,7 +14,7 @@ namespace Engine
             selectable = true;
         }
 
-        public override void added()
+        public override void pre_added()
         {
             click_sound = store.audio_player.load_sound("click");
             hover_sound = store.audio_player.load_sound("mouse_over");
@@ -27,7 +27,7 @@ namespace Engine
             size = button.end_size;
         }
 
-        public override void do_render(RenderState state, RenderScene2D scene)
+        public override void pre_render(RenderState state, RenderScene2D scene)
         {
             if (!enabled)
             {
@@ -37,7 +37,7 @@ namespace Engine
             {
                 if (hovering)
                 {
-                    if (mouse_down)
+                    if (mouse_pressed)
                         button.diffuse_color = Color(0.3f, 0.3f, 0.1f, 1);
                     else
                         button.diffuse_color = Color(0.5f, 0.5f, 0.3f, 1);

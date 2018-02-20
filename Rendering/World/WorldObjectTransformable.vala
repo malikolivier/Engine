@@ -2,17 +2,38 @@ namespace Engine
 {
 	public class WorldObjectTransformable : WorldObject
 	{
-		private Transformable3D object;
-
-		public WorldObjectTransformable(Transformable3D object)
+		protected void set_object(Transformable3D obj)
 		{
-			this.object = object;
-			object.transform = transform;
+			transformable = obj;
+			transformable.transform.change_parent(transform);
+
+			if (obj is RenderObject3D)
+				obb = (obj as RenderObject3D).obb;
 		}
 
-		protected override void add_to_scene(RenderScene3D scene)
+		protected override void do_add_to_scene(RenderScene3D scene)
+		{
+			if (transformable != null)
+				scene.add_object(transformable);
+		}
+
+		public Transformable3D? transformable { get; private set; }
+	}
+
+	public class SimpleWorldObject : WorldObject
+	{
+		public SimpleWorldObject(RenderObject3D obj)
+		{
+			object = obj;
+			obb = object.obb;
+		}
+
+		protected override void do_add_to_scene(RenderScene3D scene)
 		{
 			scene.add_object(object);
 		}
+
+		public RenderObject3D object { get; private set; }
+		public RenderMaterial material { get { return object.material; } }
 	}
 }

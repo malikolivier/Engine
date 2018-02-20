@@ -20,7 +20,7 @@ namespace Engine
             this.row_selectable = row_selectable;
         }
 
-        protected override void added()
+        protected override void pre_added()
         {
             background = new RectangleControl();
             add_child(background);
@@ -29,8 +29,6 @@ namespace Engine
 
             selectable = true;
             cursor_type = CursorType.NORMAL;
-
-            on_added();
         }
 
         protected void refresh_data()
@@ -178,7 +176,6 @@ namespace Engine
             selected_index_changed(this);
         }
 
-        protected virtual void on_added() {}
         protected abstract string get_cell_data(int row, int column);
         protected abstract ListColumnInfo get_column_info(int column);
 
@@ -211,7 +208,7 @@ namespace Engine
                 is_header = true;
             }
 
-            public override void added()
+            public override void pre_added()
             {
                 resize_style = ResizeStyle.ABSOLUTE;
 
@@ -262,7 +259,7 @@ namespace Engine
                 }
             }
 
-            protected override void do_render(RenderState state, RenderScene2D scene)
+            protected override void pre_render(RenderState state, RenderScene2D scene)
             {
                 if (is_header)
                     return;
@@ -271,7 +268,7 @@ namespace Engine
                 {
                     if (hovering)
                     {
-                        if (mouse_down)
+                        if (mouse_pressed)
                             background.color = Color(0.75f, 0.225f, 0.025f, 1);
                         else
                             background.color = Color(0.9f, 0.23f, 0.03f, 1);
@@ -283,7 +280,7 @@ namespace Engine
                 {
                     if (hovering)
                     {
-                        if (mouse_down)
+                        if (mouse_pressed)
                             background.color = Color(0.75f, 0.025f, 0.025f, 1);
                         else
                             background.color = Color(0.9f, 0.03f, 0.03f, 1);
@@ -323,7 +320,7 @@ namespace Engine
                 this.font_size = font_size;
             }
 
-            public override void added()
+            public override void pre_added()
             {
                 resize_style = ResizeStyle.ABSOLUTE;
                 inner_anchor = Vec2(0, 0.5f);

@@ -162,7 +162,7 @@ public class ResourceStore
 
     public MaterialSpecification get_standard_material_spec(MaterialData? data = null)
     {
-        return new MaterialSpecification()
+        return MaterialSpecification()
         {
             textures = 1,
             lighting_calculation = LightingCalculationType.FRAGMENT,
@@ -194,7 +194,7 @@ public class ResourceStore
         var handle = renderer.load_material(mat);
 
         RenderMaterial material = new RenderMaterial(handle, spec, mat.uniforms);
-        cache_object(null, CacheObjectType.MATERIAL, material);
+        cache_object(null, CacheObjectType.MATERIAL, material.copy());
 
         return material;
     }

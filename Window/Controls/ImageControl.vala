@@ -10,7 +10,7 @@ namespace Engine
             this.name = name;
         }
 
-        public override void on_added()
+        public override void pre_added()
         {
             RenderTexture texture = store.load_texture(name);
             image = new RenderImage2D(texture);

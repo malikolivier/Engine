@@ -3,7 +3,7 @@ public class Transform
 	protected Mat4? _matrix;
 	protected Vec3 _position;
 	protected Vec3 _scale;
-	protected Quat? _rotation;
+	protected Quat _rotation;
 
 	protected Transform? _parent;
 	protected Mat4? _parent_matrix;
@@ -11,9 +11,9 @@ public class Transform
 
 	public Transform()
 	{
-		_matrix = new Mat4();
+		_matrix = Mat4.get_new();
 		_scale = Vec3(1, 1, 1);
-		_rotation = new Quat();
+		_rotation = Quat();
 	}
 
 	public Transform.with_mat(Mat4 mat)
@@ -54,11 +54,6 @@ public class Transform
 		return t;
 	}
 
-	/*public Transform mul(Transform other)
-	{
-		return new Transform.with_mat(matrix.mul_mat(other.matrix));
-	}*/
-
 	public void change_parent(Transform? parent)
 	{
 		if (_parent == parent)
@@ -73,7 +68,6 @@ public class Transform
 	{
 		if (_parent == parent)
 			return;
-
 		if (_parent != null)
 			apply_transform(_parent);
 
@@ -136,6 +130,7 @@ public class Transform
 			if (dirty_matrix)
 			{
 				_matrix = calculate_matrix();
+				_full_matrix = null;
 				dirty_matrix = false;
 			}
 
@@ -144,7 +139,7 @@ public class Transform
 
 		set
 		{
-			if (_matrix.equals(value))
+			if (!dirty_matrix && _matrix.equals(value))
 				return;
 
 			dirty_matrix = false;
@@ -153,6 +148,7 @@ public class Transform
 			dirty_rotation = true;
 
 			_matrix = value;
+			_full_matrix = null;
 		}
 	}
 
@@ -171,7 +167,7 @@ public class Transform
 
 		set
 		{
-			if (_position == value)
+			if (!dirty_position && _position == value)
 				return;
 			
 			// Undirty
@@ -200,7 +196,7 @@ public class Transform
 
 		set
 		{
-			if (_scale == value)
+			if (!dirty_scale && _scale == value)
 				return;
 			
 			// Undirty
@@ -229,7 +225,7 @@ public class Transform
 
 		set
 		{
-			if (_rotation != null && _rotation.equals(value))
+			if (!dirty_rotation && _rotation.equals(value))
 				return;
 			
 			// Undirty

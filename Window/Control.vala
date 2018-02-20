@@ -23,25 +23,25 @@ public abstract class Control : Container
         cursor_type = CursorType.HOVER;
     }
 
-    public override void do_mouse_move(MouseMoveArgs mouse)
+    public override void mouse_move(MouseMoveArgs mouse)
     {
         if (mouse.handled || !visible || !selectable)
         {
             hovering = false;
 
-            if (!mouse_down)
+            if (!mouse_pressed)
                 return;
         }
 
-        if (!hover_check(mouse.position) && !mouse_down)
+        if (!hover_check(mouse.position) && !mouse_pressed)
         {
             hovering = false;
 
-            if (!mouse_down)
+            if (!mouse_pressed)
                 return;
         }
 
-        if (mouse_down && !hovering)
+        if (mouse_pressed && !hovering)
         {
             on_mouse_move(Vec2(mouse.position.x - rect.x, mouse.position.y - rect.y));
             return;
@@ -64,14 +64,14 @@ public abstract class Control : Container
         on_mouse_move(Vec2(mouse.position.x - rect.x, mouse.position.y - rect.y));
     }
 
-    public override void do_mouse_event(MouseEventArgs mouse)
+    public override void mouse_event(MouseEventArgs mouse)
     {
-        if (!mouse.down && mouse_down)
+        if (!mouse.down && mouse_pressed)
 			on_mouse_up(Vec2(mouse.position.x - rect.x, mouse.position.y - rect.y));
 
         if (mouse.handled || !visible || !selectable)
         {
-            mouse_down = false;
+            mouse_pressed = false;
             if (focused && mouse.down)
                 focus_lost();
             return;
@@ -79,7 +79,7 @@ public abstract class Control : Container
 
         if (!hover_check(mouse.position))
         {
-            mouse_down = false;
+            mouse_pressed = false;
             if (focused && mouse.down)
                 focus_lost();
             return;
@@ -89,25 +89,25 @@ public abstract class Control : Container
 
         if (!enabled)
         {
-            mouse_down = false;
+            mouse_pressed = false;
             return;
         }
 
         if (mouse.down)
         {
-            mouse_down = true;
-            do_mouse_down(Vec2(mouse.position.x - rect.x, mouse.position.y - rect.y));
+            mouse_pressed = true;
+            mouse_down(Vec2(mouse.position.x - rect.x, mouse.position.y - rect.y));
 			return;
         }
 		
-		if (mouse_down)
+		if (mouse_pressed)
 		{
-			mouse_down = false;
+			mouse_pressed = false;
 			click(Vec2(mouse.position.x - rect.x, mouse.position.y - rect.y));
 		}
     }
 
-    public override void do_key_press(KeyArgs key)
+    public override void key_press(KeyArgs key)
     {
         if (key.handled || !visible || !focused)
             return;
@@ -115,7 +115,7 @@ public abstract class Control : Container
         on_key_press(key);
     }
 
-    public override void do_text_input(TextInputArgs text)
+    public override void text_input(TextInputArgs text)
     {
         if (text.handled || !visible || !focused)
             return;
@@ -125,7 +125,7 @@ public abstract class Control : Container
         on_text_input(text);
     }
 
-    public override void do_text_edit(TextEditArgs text)
+    public override void text_edit(TextEditArgs text)
     {
         if (text.handled || !visible || !focused)
             return;
@@ -141,7 +141,7 @@ public abstract class Control : Container
         clicked(this, position);
     }
 
-    private void do_mouse_down(Vec2 position)
+    private void mouse_down(Vec2 position)
     {
         focused = true;
         on_mouse_down(position);
@@ -170,7 +170,7 @@ public abstract class Control : Container
     public bool enabled { get; set; }
     public bool hovering { get; private set; }
     public bool focused { get; private set; }
-    public bool mouse_down { get; private set; }
+    public bool mouse_pressed { get; private set; }
     public bool selectable { get; set; }
     public CursorType cursor_type { get; public set; }
 }
@@ -188,7 +188,7 @@ public abstract class EndControl : Control
         size = end_size;
     }
 
-    public override void do_render(RenderState state, RenderScene2D scene)
+    public override void render(RenderState state, RenderScene2D scene)
     {
         obj.scissor = scissor;
         obj.scissor_box = scissor_box;

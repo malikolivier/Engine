@@ -5,7 +5,7 @@ namespace Engine
 {
     public class OpenGLRenderer : RenderTarget
     {
-        private const int MAX_LIGHTS = 2;
+        private const int MAX_LIGHTS = 3;
 
         private const int POSITION_ATTRIBUTE = 0;
         private const int TEXTURE_ATTRIBUTE = 1;
@@ -84,7 +84,10 @@ namespace Engine
                 glClear(GL_DEPTH_BUFFER_BIT);
 
                 if (scene is RenderScene2D)
+                {
                     render_scene_2D(scene as RenderScene2D);
+                    last_program = null;
+                }
                 else if (scene is RenderScene3D)
                     render_scene_3D(scene as RenderScene3D, ref last_program);
                 
@@ -353,16 +356,19 @@ namespace Engine
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, tex[0]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid[])resource.data);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
             if (anisotropic_filtering && anisotropic > 0)
                 glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic);
+            
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid[])resource.data);
+            glEnable(GL_TEXTURE_2D); // Avoid ATI driver bug
+            glGenerateMipmap(GL_TEXTURE_2D);
 
             handle.handle = tex[0];
             handle.texture = null;
@@ -393,17 +399,22 @@ namespace Engine
 
             glGenTextures(1, tex);
 
-            float aniso[1];
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, tex[0]);
-            glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso[0]);
+            
+            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, (GLvoid[])label.data);
+
+            if (anisotropic_filtering && anisotropic > 0)
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropic);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid[])label.data);
+            glEnable(GL_TEXTURE_2D); // Avoid ATI driver bug
+            //glGenerateMipmap(GL_TEXTURE_2D);
 
             handle.handle = tex[0];
 
@@ -496,7 +507,11 @@ namespace Engine
 
         private void log_debug_message(DebugMessage message)
         {
-            EngineLog.log(EngineLogType.DEBUG, "OpenGLRenderer", message.message);
+            if (message.source == 33350 && message.message_type == 33361 && message.id == 131185)
+                return;
+
+            string msg = "Source(%u) Type(%u) ID(%u) - %s".printf(message.source, message.message_type, message.id, message.message);
+            EngineLog.log(EngineLogType.DEBUG, "OpenGLRenderer", msg);
         }
 
         protected override string[] get_debug_strings()

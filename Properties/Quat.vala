@@ -1,4 +1,4 @@
-public class Quat
+public struct Quat
 {
     public Quat()
     {
@@ -7,12 +7,12 @@ public class Quat
 
     public Quat.from_euler(float yaw, float pitch, float roll)
     {
-		init(yaw, pitch, roll);
+		init_values(yaw, pitch, roll);
     }
 
     public Quat.from_euler_vec(Vec3 vec)
     {
-        init(vec.x, vec.y, vec.z);
+        init_values(vec.x, vec.y, vec.z);
     }
 
     public Quat.from_direction(Vec3 from, Vec3 to)
@@ -25,27 +25,13 @@ public class Quat
         z = from.x * h.y - from.y * h.x;
     }
 	
-	private void init(float yaw, float pitch, float roll)
+	private void init_values(float yaw, float pitch, float roll)
 	{
         // Multiply with pi to simplify use
         float tau = (float)Math.PI / 2;
         yaw   *= tau;
         pitch *= tau;
         roll  *= tau;
-
-        /*float cr = (float)Math.cos(roll);
-        float cp = (float)Math.cos(pitch);
-        float cy = (float)Math.cos(yaw);
-        float sr = (float)Math.sin(roll);
-        float sp = (float)Math.sin(pitch);
-        float sy = (float)Math.sin(yaw);
-        float cpcy = cp * cy;
-        float spsy = sp * sy;
-
-        w = cr * cpcy + sr * spsy;
-        x = sr * cpcy - cr * spsy;
-        y = cr * sp * cy + sr * cp * sy;
-        z = cr * cp * sy - sr * sp * cy;*/
         
         float t0 = (float)Math.cos(roll);
         float t1 = (float)Math.sin(roll);
@@ -93,7 +79,7 @@ public class Quat
         float G = (w + y) * (other.w - other.z);
         float H = (w - y) * (other.w + other.z);
 
-        return new Quat.vals
+        return Quat.vals
         (
             B + (-E - F + G + H) / 2,
             A - ( E + F + G + H) / 2,
@@ -104,12 +90,12 @@ public class Quat
 
     public Quat mul_scalar(float scalar)
     {
-        return new Quat.vals(w * scalar, x * scalar, y * scalar, z * scalar);
+        return Quat.vals(w * scalar, x * scalar, y * scalar, z * scalar);
     }
 
     public Quat div_scalar(float scalar)
     {
-        return new Quat.vals(w / scalar, x / scalar, y / scalar, z / scalar);
+        return Quat.vals(w / scalar, x / scalar, y / scalar, z / scalar);
     }
 
     public float dot(Quat other)
@@ -131,12 +117,12 @@ public class Quat
 
     public Quat neg()
     {
-        return new Quat.vals(-w, -x, -y, -z);
+        return Quat.vals(-w, -x, -y, -z);
     }
 
     public Quat conjugate()
     {
-        return new Quat.vals(w, -x, -y, -z);
+        return Quat.vals(w, -x, -y, -z);
     }
 
     public Vec3 to_euler()
@@ -196,7 +182,7 @@ public class Quat
         }
 
         // calculate final values
-        return new Quat.vals
+        return Quat.vals
         (
             scale0 * from.w + scale1 * nto.w,
             scale0 * from.x + scale1 * nto.x,

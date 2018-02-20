@@ -17,19 +17,20 @@ namespace Engine
 
 	public class World
 	{
-		private WorldTransform world_transform = new WorldTransform();
+		private MainWorldObject world_transform;
 		private unowned View3D parent;
 		private WorldObject? hovered_object;
 		private WorldObject? mouse_down_object;
 
-		public World(View3D parent)
+		public World(View3D parent, ResourceStore store)
 		{
 			this.parent = parent;
+			world_transform = new MainWorldObject(store);
 		}
 
 		public void process(DeltaArgs args)
 		{
-			world_transform.process(args);
+			world_transform.start_process(args);
 		}
 
 		public void add_to_scene(RenderScene3D scene)
@@ -45,24 +46,29 @@ namespace Engine
 			world_transform.add_object(object);
 		}
 
+		public void remove_object(WorldObject object)
+		{
+			world_transform.remove_object(object);
+		}
+
 		public void mouse_event(MouseEventArgs mouse)
 		{
-			if (!do_picking || mouse.handled)
-				return;
-
-			if (hovered_object != null)
+			if (!do_picking || mouse.handled || hovered_object == null)
 			{
-				if (mouse.down)
-				{
-					mouse_down_object = hovered_object;
-					mouse_down_object.on_mouse_down(mouse_down_object);
-				}
-				else
-				{
-					mouse_down_object.on_mouse_up(mouse_down_object);
-					mouse_down_object.on_click(mouse_down_object);
-					mouse_down_object = null;
-				}
+				mouse_down_object = null;
+				return;
+			}
+
+			if (mouse.down)
+			{
+				mouse_down_object = hovered_object;
+				mouse_down_object.on_mouse_down(mouse_down_object);
+			}
+			else if (mouse_down_object != null)
+			{
+				mouse_down_object.on_mouse_up(mouse_down_object);
+				mouse_down_object.on_click(mouse_down_object);
+				mouse_down_object = null;
 			}
 		}
 
@@ -90,12 +96,6 @@ namespace Engine
 					prev.on_focus_lost(prev);
 				if (hovered_object != null)
 					hovered_object.on_mouse_over(hovered_object);
-			}
-
-			if (hovered_object != null)
-			{
-				mouse.handled = true;
-				mouse.cursor_type = CursorType.HOVER;
 			}
 		}
 
@@ -135,58 +135,16 @@ namespace Engine
 		}
 	}
 
-	public class WorldTransform : WorldObject
+	public class MainWorldObject : WorldObject
 	{
-		private ArrayList<WorldObject> objects = new ArrayList<WorldObject>();
-
-		public WorldTransform()
+		public MainWorldObject(ResourceStore store)
 		{
-			selectable = true;
+			this.store = store;
 		}
 
-		protected override void do_process(DeltaArgs args)
+		public void start_process(DeltaArgs args)
 		{
-			foreach (WorldObject object in objects)
-				object.process(args);
-		}
-
-		public override void add_to_scene(RenderScene3D scene)
-		{
-			foreach (WorldObject object in objects)
-				object.add_to_scene(scene);
-		}
-
-		public void add_object(WorldObject object)
-		{
-			objects.add(object);
-			object.transform.change_parent(transform);
-		}
-
-		public void remove_object(WorldObject object)
-		{
-			objects.remove(object);
-			object.transform.change_parent(null);
-		}
-
-		public void convert_object(WorldObject object)
-		{
-			objects.add(object);
-			object.transform.convert_to_parent(transform);
-		}
-
-		public void unconvert_object(WorldObject object)
-		{
-			objects.remove(object);
-			object.transform.convert_to_parent(null);
-		}
-
-		public override void get_picking(PickingResult result)
-		{
-			if (!selectable)
-				return;
-
-			foreach (WorldObject obj in objects)
-				obj.get_picking(result);
+			do_process(args);
 		}
 	}
 }

@@ -82,15 +82,15 @@ public abstract class RenderWindow
                 );
 
                 if (!key_press(key))
-                    main_view.key_press(key);
+                    main_view.do_key_press(key);
             }
             else if(e.type == EventType.TEXTINPUT)
             {
-                main_view.text_input(new TextInputArgs(e.text.text));
+                main_view.do_text_input(new TextInputArgs(e.text.text));
             }
             else if(e.type == EventType.TEXTEDITING)
             {
-                main_view.text_edit(new TextEditArgs(e.edit.text, e.edit.start, e.edit.length));
+                main_view.do_text_edit(new TextEditArgs(e.edit.text, e.edit.start, e.edit.length));
             }
             else if (e.type == EventType.MOUSEMOTION)
             {
@@ -124,7 +124,7 @@ public abstract class RenderWindow
                 int ax = 0, ay = 0;
                 Cursor.get_state(ref ax, ref ay);
                 MouseEventArgs mouse = new MouseEventArgs(button, null, ev.state == 1, Vec2i(ax, size.height - ay), size);
-                main_view.mouse_event(mouse);
+                main_view.do_mouse_event(mouse);
             }
             else if (e.type == EventType.MOUSEWHEEL)
             {
@@ -150,7 +150,7 @@ public abstract class RenderWindow
         _cursor_position = Vec2i(ax, size.height - ay);
 
         MouseMoveArgs mouse = new MouseMoveArgs(cursor_position, Vec2i(rx, -ry), size);
-        main_view.mouse_move(mouse);
+        main_view.do_mouse_move(mouse);
 
         if (mouse.cursor_type != CursorType.UNDEFINED)
             set_cursor_type(mouse.cursor_type);

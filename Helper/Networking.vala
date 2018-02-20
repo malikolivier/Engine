@@ -533,9 +533,11 @@ public abstract class Serializable : Object
         }
 
         ParamSpec[] specs = get_params(type);
-        Parameter?[] params = new Parameter?[specs.length];
 
-        for (int i = 0; i < params.length; i++)
+        string[] names = new string[specs.length];
+        Value[] values = new Value[specs.length];
+
+        for (int i = 0; i < specs.length; i++)
         {
             ParamSpec p = specs[i];
 
@@ -569,25 +571,14 @@ public abstract class Serializable : Object
 
             if (has_value)
             {
-                params[i] = Parameter();
-                params[i].name = p.get_name();
-                params[i].value = val;
+                names[i] = p.get_name();
+                values[i] = val;
             }
             else
-                params[i] = null;
+                names[i] = null;
         }
 
-        int count = 0;
-        for (int i = 0; i < params.length; i++)
-            if (params[i] != null)
-                count++;
-        Parameter[] p = new Parameter[count];
-        count = 0;
-        for (int i = 0; i < params.length; i++)
-            if (params[i] != null)
-                p[count++] = params[i];
-
-        Object obj = Object.newv(type, p);
+        Object obj = Object.new_with_properties(type, names, values);
 
         return (Serializable)obj;
     }

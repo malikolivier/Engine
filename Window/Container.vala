@@ -24,7 +24,10 @@ public abstract class Container
     {
         child.set_parent(this);
         if (!child.loaded)
+        {
+            child.pre_added();
             child.added();
+        }
         child._loaded = true;
         child.resize();
         children.add(child);
@@ -34,7 +37,10 @@ public abstract class Container
     {
         child.set_parent(this);
         if (!child.loaded)
+        {
+            child.pre_added();
             child.added();
+        }
         child._loaded = true;
         child.resize();
         children.insert(0, child);
@@ -68,16 +74,18 @@ public abstract class Container
         animations.remove(animation);
     }
 
-    protected void process(DeltaArgs delta)
+    protected void do_process(DeltaArgs delta)
     {
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
-            children[i].process(delta);
+            children[i].do_process(delta);
         foreach (var animation in animations)
             animation.process(delta);
-        do_process(delta);
+
+        pre_process(delta);
+        process(delta);
     }
 
-    protected RenderScene2D render(RenderState state, RenderScene2D scene)
+    protected RenderScene2D do_render(RenderState state, RenderScene2D scene)
     {
         if (!visible)
             return scene;
@@ -91,63 +99,64 @@ public abstract class Container
             s = new RenderScene2D(state.screen_size, rect);
         }
 
-        do_render(state, s);
+        pre_render(state, s);
+        render(state, s);
 
         for (int i = 0; i < children.size; i++)
-            s = children[i].render(state, s);
+            s = children[i].do_render(state, s);
         
         return s;
     }
 
-    public void mouse_event(MouseEventArgs mouse)
+    public void do_mouse_event(MouseEventArgs mouse)
     {
         if (!visible)
             return;
 
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
-            children[i].mouse_event(mouse);
-        do_mouse_event(mouse);
+            children[i].do_mouse_event(mouse);
+        mouse_event(mouse);
     }
 
-    public void mouse_move(MouseMoveArgs mouse)
+    public void do_mouse_move(MouseMoveArgs mouse)
     {
         if (!visible)
             return;
 
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
-            children[i].mouse_move(mouse);
-        do_mouse_move(mouse);
+            children[i].do_mouse_move(mouse);
+        mouse_move(mouse);
     }
 
-    public void key_press(KeyArgs key)
+    public void do_key_press(KeyArgs key)
     {
         if (!visible)
             return;
 
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
-            children[i].key_press(key);
+            children[i].do_key_press(key);
 
-        do_key_press(key);
+        key_press(key);
     }
 
-    public void text_input(TextInputArgs text)
+    public void do_text_input(TextInputArgs text)
     {
         if (!visible)
             return;
 
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
-            children[i].text_input(text);
-        do_text_input(text);
+            children[i].do_text_input(text);
+        text_input(text);
     }
 
-    public void text_edit(TextEditArgs text)
+    public void do_text_edit(TextEditArgs text)
     {
         if (!visible)
             return;
 
         for (int i = children.size - 1; i >= 0 && i < children.size; i--)
-            children[i].text_edit(text);
-        do_text_edit(text);
+            children[i].do_text_edit(text);
+        text_edit(text);
     }
 
     public void resize()
@@ -220,16 +229,19 @@ public abstract class Container
     }
 
     public RenderWindow window { get { return parent_window; } }
+    protected virtual void pre_added() {}
     protected virtual void added() {}
     protected virtual void removed() {}
     protected virtual void resized() {}
-    protected virtual void do_render(RenderState state, RenderScene2D scene) { }
-    protected virtual void do_process(DeltaArgs delta) {}
-    protected virtual void do_mouse_event(MouseEventArgs mouse) {}
-    protected virtual void do_mouse_move(MouseMoveArgs mouse) {}
-    protected virtual void do_key_press(KeyArgs key) {}
-    protected virtual void do_text_input(TextInputArgs text) {}
-    protected virtual void do_text_edit(TextEditArgs text) {}
+    protected virtual void pre_render(RenderState state, RenderScene2D scene) {}
+    protected virtual void render(RenderState state, RenderScene2D scene) {}
+    protected virtual void pre_process(DeltaArgs delta) {}
+    protected virtual void process(DeltaArgs delta) {}
+    protected virtual void mouse_event(MouseEventArgs mouse) {}
+    protected virtual void mouse_move(MouseMoveArgs mouse) {}
+    protected virtual void key_press(KeyArgs key) {}
+    protected virtual void text_input(TextInputArgs text) {}
+    protected virtual void text_edit(TextEditArgs text) {}
     protected bool reset_depth = false;
 
     protected ResourceStore store { get { return parent_window.store; } }

@@ -41,11 +41,11 @@ public class OpenGLStandardShaderBuilder : OpenGLShaderBuilder
         OpenGLShaderUniform textures_uniform = new OpenGLShaderUniform("textures", OpenGLShaderPrimitiveType.SAMPLER2D)
         { array = spec.textures.to_string() };
 
-        OpenGLShaderUniform ambient_material_multiplier_uniform = new OpenGLShaderUniform("ambient_material_multiplier", OpenGLShaderPrimitiveType.FLOAT);
+        //OpenGLShaderUniform ambient_material_multiplier_uniform = new OpenGLShaderUniform("ambient_material_multiplier", OpenGLShaderPrimitiveType.FLOAT);
         OpenGLShaderUniform ambient_color_uniform = new OpenGLShaderUniform("ambient_color", OpenGLShaderPrimitiveType.VEC4);
-        OpenGLShaderUniform diffuse_material_multiplier_uniform = new OpenGLShaderUniform("diffuse_material_multiplier", OpenGLShaderPrimitiveType.FLOAT);
+        //OpenGLShaderUniform diffuse_material_multiplier_uniform = new OpenGLShaderUniform("diffuse_material_multiplier", OpenGLShaderPrimitiveType.FLOAT);
         OpenGLShaderUniform diffuse_color_uniform = new OpenGLShaderUniform("diffuse_color", OpenGLShaderPrimitiveType.VEC4);
-        OpenGLShaderUniform specular_material_multiplier_uniform = new OpenGLShaderUniform("specular_material_multiplier", OpenGLShaderPrimitiveType.FLOAT);
+        //OpenGLShaderUniform specular_material_multiplier_uniform = new OpenGLShaderUniform("specular_material_multiplier", OpenGLShaderPrimitiveType.FLOAT);
         OpenGLShaderUniform specular_color_uniform = new OpenGLShaderUniform("specular_color", OpenGLShaderPrimitiveType.VEC4);
         
         OpenGLShaderVarying frag_normal_varying = new OpenGLShaderVarying("frag_normal", OpenGLShaderPrimitiveType.VEC3);
@@ -275,7 +275,7 @@ public class OpenGLStandardShaderBuilder : OpenGLShaderBuilder
         return "vec4(0.0)";
     }
 
-    private static string float_blend(string? texture, string? color, float texture_strength)
+    /*private static string float_blend(string? texture, string? color, float texture_strength)
     {
         if (texture == null && color == null)
             return "vec4(0.0)";
@@ -288,7 +288,7 @@ public class OpenGLStandardShaderBuilder : OpenGLShaderBuilder
         return 
             "((" + color + ") * " + (1 - texture_strength).to_string() + " + " +
             "(" + texture + ") * " + texture_strength.to_string() + ")";
-    }
+    }*/
 
     private static string texture_alpha_blend(string? texture, string? color)
     {
@@ -430,9 +430,9 @@ public class OpenGLStandardShaderBuilder : OpenGLShaderBuilder
         vec4 texture = texture2D(textures[0], frag_texture_coord);
     """;
 
-    private string fragment_color_discard_code_string = """
+    /*private string fragment_color_discard_code_string = """
         if (color.a <= 0) discard;
-    """;
+    """;*/
 
     private string define_local_vars_code_string = """
     	vec4 diffuse_strength;

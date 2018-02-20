@@ -149,7 +149,7 @@ public class Calculations
                         0,             0,             0, 1
         };
 
-        return new Mat4.with_array(m);
+        return Mat4.new_with_array(m);
     }
 
     public static Mat4 translation_matrix(Vec3 vec)
@@ -162,7 +162,7 @@ public class Calculations
             0,    0,    0,     1
         };
 
-        return new Mat4.with_array(vals);
+        return Mat4.new_with_array(vals);
     }
 
     public static Mat4 scale_matrix(Vec3 vec)
@@ -175,7 +175,7 @@ public class Calculations
             0, 0,     0, 1
         };
 
-        return new Mat4.with_array(vals);
+        return Mat4.new_with_array(vals);
     }
 
     public static Mat4 get_model_matrix(Vec3 translation, Vec3 scale, Quat rotation)

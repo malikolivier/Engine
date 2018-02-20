@@ -2,7 +2,7 @@ public class LabelControl : EndControl
 {
     private RenderLabel2D label;
 
-    public override void on_added()
+    public override void pre_added()
     {
         label = store.create_label();
         label.text = "";

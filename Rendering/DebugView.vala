@@ -4,7 +4,7 @@ public class DebugView : View2D
 {
     private ArrayList<LabelControl> labels = new ArrayList<LabelControl>();
 
-    protected override void do_process(DeltaArgs args)
+    protected override void process(DeltaArgs args)
     {
         if (info == null)
         {

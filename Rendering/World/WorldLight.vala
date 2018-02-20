@@ -9,7 +9,7 @@ namespace Engine
 			light.transform = transform;
 		}
 
-		protected override void add_to_scene(RenderScene3D scene)
+		protected override void do_add_to_scene(RenderScene3D scene)
 		{
 			scene.add_light_source(light);
 		}
@@ -37,6 +37,7 @@ namespace Engine
 		}
 
 		public float intensity { get { return light.intensity; } set { light.intensity = value; } }
+		public Color color { get { return light.color; } set { light.color = value; } }
 	}
 
 	public class WorldLightAnimation : WorldObjectAnimation

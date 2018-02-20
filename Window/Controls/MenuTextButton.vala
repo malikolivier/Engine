@@ -1,6 +1,6 @@
 namespace Engine
 {
-    class MenuTextButton : Control
+    public class MenuTextButton : Control
     {
         private ImageControl button;
         private LabelControl label;
@@ -16,7 +16,7 @@ namespace Engine
             this.text = text;
         }
 
-        public override void added()
+        public override void pre_added()
         {
             click_sound = store.audio_player.load_sound("click");
             hover_sound = store.audio_player.load_sound("mouse_over");
@@ -34,7 +34,7 @@ namespace Engine
             size = button.end_size;
         }
 
-        public override void do_render(RenderState state, RenderScene2D scene)
+        public override void pre_render(RenderState state, RenderScene2D scene)
         {
             if (!enabled)
             {
@@ -45,7 +45,7 @@ namespace Engine
             {
                 if (hovering)
                 {
-                    if (mouse_down)
+                    if (mouse_pressed)
                     {
                         button.diffuse_color = Color(0.2f, 0.2f, 0.05f, 1);
                         label.color = Color(0.2f, 0.2f, 0.05f, 1);

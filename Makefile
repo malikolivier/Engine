@@ -1,4 +1,4 @@
-DIRS  = \
+DIRS = \
 	*.vala \
 	Audio/*.vala \
 	Files/*.vala \
@@ -12,7 +12,7 @@ DIRS  = \
 	Window/*.vala \
 	Window/Controls/*.vala
 
-PKGS  = \
+PKGS = \
 	--thread \
 	--target-glib 2.32 \
 	--pkg gio-2.0 \

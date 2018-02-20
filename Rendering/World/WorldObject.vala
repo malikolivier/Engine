@@ -2,10 +2,13 @@ using Gee;
 
 namespace Engine
 {
-	public abstract class WorldObject
+	public class WorldObject
 	{
 		private ArrayList<WorldObjectAnimation> buffered_animations = new ArrayList<WorldObjectAnimation>();
 		private ArrayList<WorldObjectAnimation> unbuffered_animations = new ArrayList<WorldObjectAnimation>();
+		private ArrayList<WorldObject> objects = new ArrayList<WorldObject>();
+		private WorldObject? parent;
+		private bool loaded;
 
 		public signal void animation_finished(WorldObject object, WorldObjectAnimation animation);
 		public signal void on_click(WorldObject object);
@@ -14,12 +17,19 @@ namespace Engine
 		public signal void on_mouse_over(WorldObject object);
 		public signal void on_focus_lost(WorldObject object);
 
-		protected WorldObject()
+		public WorldObject()
 		{
 			transform = new Transform();
+			visible = true;
 		}
 
-		public void process(DeltaArgs args)
+		protected void add(ResourceStore store, WorldObject parent)
+		{
+			this.store = store;
+			added();
+		}
+
+		protected void do_process(DeltaArgs args)
 		{
 			foreach (var animation in unbuffered_animations)
 				animation.process(args);
@@ -27,7 +37,10 @@ namespace Engine
 			if (buffered_animations.size > 0)
 				buffered_animations[0].process(args);
 			
-			do_process(args);
+			process(args);
+
+			foreach (WorldObject object in objects)
+				object.do_process(args);
 		}
 
 		public void animate(WorldObjectAnimation animation, bool buffered = true)
@@ -107,6 +120,9 @@ namespace Engine
 
 		public virtual void get_picking(PickingResult result)
 		{
+			foreach (WorldObject obj in objects)
+				obj.get_picking(result);
+
 			if (!selectable)
 				return;
 
@@ -121,15 +137,106 @@ namespace Engine
 			}
 		}
 
+		public void add_object(WorldObject object)
+		{
+			objects.add(object);
+
+			object.store = store;
+			object.transform.change_parent(transform);
+
+			if (!object.loaded)
+			{
+				object.parent = this;
+				object.added();
+			}
+			else
+			{
+				object.parent.objects.remove(object);
+				object.parent = this;
+			}
+
+			object.loaded = true;
+		}
+
+		public void remove_object(WorldObject object)
+		{
+			objects.remove(object);
+			object.transform.change_parent(null);
+			object.parent = null;
+		}
+
+		public void convert_object(WorldObject object)
+		{
+			objects.add(object);
+
+			object.store = store;
+			object.transform.convert_to_parent(transform);
+
+			if (!object.loaded)
+			{
+				object.parent = this;
+				object.added();
+			}
+			else
+			{
+				object.parent.objects.remove(object);
+				object.parent = this;
+			}
+		}
+
+		public void unconvert_object(WorldObject object)
+		{
+			objects.remove(object);
+			object.transform.convert_to_parent(null);
+			object.parent = null;
+		}
+
+		public void add_to_scene(RenderScene3D scene)
+		{
+			if (!visible)
+				return;
+			
+			foreach (WorldObject object in objects)
+				object.add_to_scene(scene);
+			
+			do_add_to_scene(scene);
+		}
+
+		public WorldObject? get_parent()
+		{
+			return parent;
+		}
+
+		protected virtual void added() {}
 		protected virtual void start_custom_animation(WorldObjectAnimation animation) {}
 		protected virtual void process_custom_animation(WorldObjectAnimation animation, float time) {}
 
-		protected virtual void do_process(DeltaArgs args) {}
+		protected virtual void process(DeltaArgs args) {}
 		protected virtual void apply_transform(Transform transform) {}
-		public virtual void add_to_scene(RenderScene3D scene) {}
+		protected virtual void do_add_to_scene(RenderScene3D scene) {}
 
-		public Transform transform { get; private set; }
+		public Vec3 position
+		{
+			get { return transform.position; }
+			set { transform.position = value; }
+		}
+
+		public Vec3 scale
+		{
+			get { return transform.scale; }
+			set { transform.scale = value; }
+		}
+
+		public Quat rotation
+		{
+			get { return transform.rotation; }
+			set { transform.rotation = value; }
+		}
+
+		public Transform transform { get; protected set; }
 		public bool selectable { get; set; }
+		public bool visible { get; set; }
 		public Vec3 obb { get; protected set; }
-	}	
+		protected ResourceStore store { get; protected set; }
+	}
 }

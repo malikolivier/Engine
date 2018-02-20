@@ -23,7 +23,6 @@ public class TextInputControl : Control
 
     public TextInputControl(string back_text, int max_length)
     {
-        base();
         this.back_text = back_text;
         this.max_length = max_length;
         selectable = true;
@@ -33,7 +32,7 @@ public class TextInputControl : Control
         timer.set_time(0.55f);
     }
 
-    protected override void added()
+    protected override void pre_added()
     {
         RectangleControl border = new RectangleControl();
         add_child(border);
@@ -93,7 +92,7 @@ public class TextInputControl : Control
 
     protected override void on_mouse_move(Vec2 position)
     {
-        if (!mouse_down)
+        if (!mouse_pressed)
             return;
 
         selection_end = caret_position = get_char_position(position.x);
@@ -341,7 +340,7 @@ public class TextInputControl : Control
         selection.position = Vec2(start, 0);
     }
 
-    public override void do_process(DeltaArgs delta)
+    public override void pre_process(DeltaArgs delta)
     {
         if (!focused)
         {
